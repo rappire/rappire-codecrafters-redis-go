@@ -19,13 +19,37 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-
-		conn.Write([]byte("+PONG\r\n"))
+		handleConnection(conn)
 	}
+}
+
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	readBuffer := make([]byte, 1024)
+
+	for {
+		n, err := conn.Read(readBuffer)
+		if err != nil {
+			fmt.Println("Error reading: ", err.Error())
+			return
+		}
+		if n > 0 {
+			conn.Write([]byte("+PONG\r\n"))
+		}
+	}
+	//scanner := bufio.NewScanner(conn)
+	//for scanner.Scan() {
+	//	text := scanner.Text()
+	//	if strings.TrimSpace(text) == "PING" {
+	//		conn.Write([]byte("+PONG\r\n"))
+	//	}
+	//}
 }
