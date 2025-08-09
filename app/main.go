@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"strings"
@@ -72,20 +71,11 @@ func main() {
 
 func handleConnection(ctx *ConnContext, eventChan chan Event) {
 	defer ctx.Conn.Close()
-	reader := bufio.NewReader(ctx.Conn)
+	scanner := bufio.NewScanner(ctx.Conn)
 
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				fmt.Println("client disconnected:", ctx.Conn.RemoteAddr())
-			} else {
-				fmt.Println("read error:", err)
-			}
-			return
-		}
-
-		message := strings.Trim(line, "\r\n")
+	for scanner.Scan() {
+		text := scanner.Text()
+		message := strings.Trim(text, "\r\n")
 		fmt.Println("message:", message)
 		eventChan <- Event{ctx, "PING", message}
 	}
