@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -12,73 +15,24 @@ var _ = net.Listen
 var _ = os.Exit
 
 type Event struct {
-	Task       func()
-	Callback   func()
-	IsBlocking bool
+	Ctx  *ConnContext
+	Type string
+	Data string
+}
+type ConnContext struct {
+	Conn net.Conn
+	mu   sync.Mutex
 }
 
-type EventLoop struct {
-	mainTasks chan Event
-	taskQueue chan Event
-	stop      chan bool
+func (connContext *ConnContext) Write(message []byte) (n int, err error) {
+	connContext.mu.Lock()
+	defer connContext.mu.Unlock()
+	return connContext.Conn.Write(message)
 }
 
-func Add(eventLoop *EventLoop, event *Event) {
-	eventLoop.mainTasks <- *event
-}
-
-func AddToTaskQueue(eventLoop *EventLoop, event *Event) {
-	eventLoop.taskQueue <- *event
-}
-
-func StopEventLoop(eventLoop *EventLoop) {
-	eventLoop.stop <- true
-}
-
-func initEventLoop(eventLoop *EventLoop) *sync.WaitGroup {
-	var wg sync.WaitGroup
-	wg.Add(1)
-	workerPool := make(chan struct{}, 10)
-
-	func() {
-		defer wg.Done()
-		for {
-			select {
-			case task := <-eventLoop.mainTasks:
-				if task.IsBlocking {
-					workerPool <- struct{}{}
-					go func() {
-						defer func() {
-							<-workerPool
-						}()
-
-						task.Task()
-
-						if task.Callback != nil {
-							AddToTaskQueue(eventLoop, &Event{
-								Task: task.Callback,
-							})
-						}
-					}()
-				} else {
-					task.Task()
-				}
-			case task := <-eventLoop.taskQueue:
-				task.Task()
-
-			case stop := <-eventLoop.stop:
-				if stop {
-					return
-				}
-			}
-		}
-	}()
-
-	return &wg
-}
+type Handler func(Event)
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
 
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
@@ -86,14 +40,23 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
+	defer l.Close()
 
-	eventLoop := EventLoop{
-		mainTasks: make(chan Event),
-		taskQueue: make(chan Event),
-		stop:      make(chan bool),
+	eventChan := make(chan Event, 100)
+
+	handlers := map[string]Handler{
+		"PING": func(e Event) { e.Ctx.Write([]byte("+PONG\r\n")) },
 	}
 
-	wg := initEventLoop(&eventLoop)
+	go func() {
+		for ev := range eventChan {
+			if handlers, ok := handlers[ev.Type]; ok {
+				handlers(ev)
+			}
+		}
+	}()
+
+	fmt.Println("listening on :6379")
 
 	for {
 		conn, err := l.Accept()
@@ -101,28 +64,29 @@ func main() {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		Add(&eventLoop, &Event{
-			Task: func() {
-				handleConnection(conn)
-			},
-			IsBlocking: false,
-		})
+		fmt.Println("new connection:", conn.RemoteAddr())
+		ctx := &ConnContext{Conn: conn}
+		go handleConnection(ctx, eventChan)
 	}
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-
-	readBuffer := make([]byte, 1024)
+func handleConnection(ctx *ConnContext, eventChan chan Event) {
+	defer ctx.Conn.Close()
+	reader := bufio.NewReader(ctx.Conn)
 
 	for {
-		n, err := conn.Read(readBuffer)
+		line, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("Error reading: ", err.Error())
+			if err == io.EOF {
+				fmt.Println("client disconnected:", ctx.Conn.RemoteAddr())
+			} else {
+				fmt.Println("read error:", err)
+			}
 			return
 		}
-		if n > 0 {
-			conn.Write([]byte("+PONG\r\n"))
-		}
+
+		message := strings.Trim(line, "\r\n")
+		eventChan <- Event{ctx, "PING", message}
 	}
+
 }
