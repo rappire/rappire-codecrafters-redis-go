@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -14,9 +15,9 @@ var _ = net.Listen
 var _ = os.Exit
 
 type Event struct {
-	Ctx  *ConnContext
-	Type string
-	Data string
+	Ctx     *ConnContext
+	Command string
+	Data    string
 }
 type ConnContext struct {
 	Conn net.Conn
@@ -49,7 +50,7 @@ func main() {
 
 	go func() {
 		for ev := range eventChan {
-			if handlers, ok := handlers[ev.Type]; ok {
+			if handlers, ok := handlers[ev.Command]; ok {
 				handlers(ev)
 			}
 		}
@@ -71,13 +72,30 @@ func main() {
 
 func handleConnection(ctx *ConnContext, eventChan chan Event) {
 	defer ctx.Conn.Close()
-	scanner := bufio.NewScanner(ctx.Conn)
+	reader := bufio.NewReader(ctx.Conn)
 
-	for scanner.Scan() {
-		text := scanner.Text()
-		message := strings.Trim(text, "\r\n")
-		fmt.Println("message:", message)
-		eventChan <- Event{ctx, "PING", message}
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("client disconnected:", ctx.Conn.RemoteAddr())
+			} else {
+				fmt.Println("read error:", err)
+			}
+			return
+		}
+
+		message := strings.Trim(line, "\r\n")
+		parts := strings.Fields(message)
+		if len(parts) == 0 {
+			continue
+		}
+		cmd := parts[0]
+		data := ""
+		if len(parts) > 1 {
+			data = strings.Join(parts[1:], " ")
+		}
+		eventChan <- Event{ctx, cmd, data}
 	}
 
 }
