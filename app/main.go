@@ -46,6 +46,7 @@ func main() {
 
 	handlers := map[string]Handler{
 		"PING": func(e Event) { e.Ctx.Write([]byte("+PONG\r\n")) },
+		"ECHO": func(e Event) { e.Ctx.Write([]byte(e.Data)) },
 	}
 
 	go func() {
