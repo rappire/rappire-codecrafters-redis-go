@@ -44,8 +44,14 @@ func main() {
 	eventChan := make(chan Event, 100)
 
 	handlers := map[string]Handler{
-		"PING": func(e Event) { e.Ctx.Write([]byte("+PONG\r\n")) },
-		"ECHO": func(e Event) { e.Ctx.Write([]byte(e.Data)) },
+		"PING": func(e Event) {
+			msg := AppendString([]byte{}, "PONG")
+			e.Ctx.Write(msg)
+		},
+		"ECHO": func(e Event) {
+			msg := AppendBulkString([]byte{}, []byte(e.Data))
+			e.Ctx.Write(msg)
+		},
 	}
 
 	go func() {
@@ -83,7 +89,12 @@ func handleConnection(ctx *ConnContext, eventChan chan Event) {
 
 		if resp.Type == Array && resp.Length > 0 {
 			cmd := strings.ToUpper(string(resp.Arr[0].Data))
-			eventChan <- Event{Command: cmd, Data: string(resp.Arr[1].Data), Ctx: ctx}
+			var data []byte
+
+			for _, b := range resp.Arr[1:] {
+				data = append(data, b.Data...)
+			}
+			eventChan <- Event{Command: cmd, Data: string(data), Ctx: ctx}
 		}
 	}
 }

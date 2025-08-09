@@ -70,12 +70,11 @@ func readRESP(reader *bufio.Reader) (Resp, error) {
 			return Resp{Type: respType, Data: nil}, nil
 		}
 
-		buf := make([]byte, length)
+		buf := make([]byte, length+2)
 		_, err = io.ReadFull(reader, buf)
 		if err != nil {
 			return Resp{}, err
 		}
-		fmt.Println(string(buf))
 		if !strings.HasSuffix(string(buf), "\r\n") {
 			return Resp{}, fmt.Errorf("invalid response format")
 		}
@@ -84,4 +83,36 @@ func readRESP(reader *bufio.Reader) (Resp, error) {
 	default:
 		return Resp{}, fmt.Errorf("unknown Resp type: %c", respType)
 	}
+}
+
+func appendPrefix(buf []byte, c byte, n int64) []byte {
+	buf = append(buf, c)
+	buf = strconv.AppendInt(buf, n, 10)
+	return append(buf, '\r', '\n')
+}
+
+func AppendString(buf []byte, data string) []byte {
+	buf = append(buf, '+')
+	buf = append(buf, data...)
+	return append(buf, '\r', '\n')
+}
+
+func AppendError(buf []byte, data string) []byte {
+	buf = append(buf, '-')
+	buf = append(buf, data...)
+	return append(buf, '\r', '\n')
+}
+
+func AppendBulkString(buf []byte, bulk []byte) []byte {
+	buf = appendPrefix(buf, '$', int64(len(bulk)))
+	buf = append(buf, bulk...)
+	return append(buf, '\r', '\n')
+}
+
+func AppendArray(buf []byte, n int) []byte {
+	return appendPrefix(buf, '*', int64(n))
+}
+
+func AppendInt(buf []byte, n int) []byte {
+	return appendPrefix(buf, ':', int64(n))
 }
