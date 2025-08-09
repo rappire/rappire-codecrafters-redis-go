@@ -75,7 +75,7 @@ func readRESP(reader *bufio.Reader) (Resp, error) {
 		if err != nil {
 			return Resp{}, err
 		}
-		if !strings.HasPrefix(string(buf), "\r\n") {
+		if !strings.HasSuffix(string(buf), "\r\n") {
 			return Resp{}, fmt.Errorf("invalid response format")
 		}
 		data := buf[:length]
