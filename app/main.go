@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"strings"
@@ -76,27 +75,15 @@ func handleConnection(ctx *ConnContext, eventChan chan Event) {
 	reader := bufio.NewReader(ctx.Conn)
 
 	for {
-		line, err := reader.ReadString('\n')
+		resp, err := readRESP(reader)
 		if err != nil {
-			if err == io.EOF {
-				fmt.Println("client disconnected:", ctx.Conn.RemoteAddr())
-			} else {
-				fmt.Println("read error:", err)
-			}
+			fmt.Println("Error reading response: ", err.Error())
 			return
 		}
 
-		message := strings.Trim(line, "\r\n")
-		parts := strings.Fields(message)
-		if len(parts) == 0 {
-			continue
+		if resp.Type == Array && resp.Length > 0 {
+			cmd := strings.ToUpper(string(resp.Arr[0].Data))
+			eventChan <- Event{Command: cmd, Data: string(resp.Arr[1].Data), Ctx: ctx}
 		}
-		cmd := parts[0]
-		data := ""
-		if len(parts) > 1 {
-			data = strings.Join(parts[1:], " ")
-		}
-		eventChan <- Event{ctx, cmd, data}
 	}
-
 }
