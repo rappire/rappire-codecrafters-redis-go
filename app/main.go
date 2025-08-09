@@ -86,6 +86,7 @@ func handleConnection(ctx *ConnContext, eventChan chan Event) {
 		}
 
 		message := strings.Trim(line, "\r\n")
+		fmt.Println("message:", message)
 		eventChan <- Event{ctx, "PING", message}
 	}
 
