@@ -16,7 +16,7 @@ var _ = os.Exit
 type Event struct {
 	Ctx     *ConnContext
 	Command string
-	Data    string
+	Args    [][]byte
 }
 type ConnContext struct {
 	Conn net.Conn
@@ -42,6 +42,7 @@ func main() {
 	defer l.Close()
 
 	eventChan := make(chan Event, 100)
+	store := NewStore()
 
 	handlers := map[string]Handler{
 		"PING": func(e Event) {
@@ -49,8 +50,24 @@ func main() {
 			e.Ctx.Write(msg)
 		},
 		"ECHO": func(e Event) {
-			msg := AppendBulkString([]byte{}, []byte(e.Data))
-			e.Ctx.Write(msg)
+			if len(e.Args) > 0 {
+				e.Ctx.Write(AppendBulkString([]byte{}, e.Args[0]))
+			}
+		},
+		"SET": func(e Event) {
+			if len(e.Args) == 2 {
+				key := string(e.Args[0])
+				value := string(e.Args[1])
+				store.Set(key, value)
+				e.Ctx.Write(AppendString([]byte{}, "OK"))
+			}
+		},
+		"GET": func(e Event) {
+			if len(e.Args) > 0 {
+				key := string(e.Args[0])
+				value := store.Get(key)
+				e.Ctx.Write(AppendBulkString([]byte{}, []byte(value)))
+			}
 		},
 	}
 
@@ -58,6 +75,8 @@ func main() {
 		for ev := range eventChan {
 			if handlers, ok := handlers[ev.Command]; ok {
 				handlers(ev)
+			} else {
+				ev.Ctx.Write(AppendError(nil, "ERR unknown command '"+ev.Command+"'"))
 			}
 		}
 	}()
@@ -89,12 +108,11 @@ func handleConnection(ctx *ConnContext, eventChan chan Event) {
 
 		if resp.Type == Array && resp.Length > 0 {
 			cmd := strings.ToUpper(string(resp.Arr[0].Data))
-			var data []byte
-
+			args := make([][]byte, 0, resp.Length-1)
 			for _, b := range resp.Arr[1:] {
-				data = append(data, b.Data...)
+				args = append(args, b.Data)
 			}
-			eventChan <- Event{Command: cmd, Data: string(data), Ctx: ctx}
+			eventChan <- Event{Command: cmd, Args: args, Ctx: ctx}
 		}
 	}
 }

@@ -54,3 +54,25 @@ func TestEcho(t *testing.T) {
 		t.Errorf("ECHO 응답이 잘못됨. got=%q, want=%q", resp, expected)
 	}
 }
+
+func TestSet(t *testing.T) {
+	// ["SET", "mykey", "myvalue"]
+	message := "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n"
+	resp := sendAndReceive(t, message)
+
+	expected := "+OK\r\n"
+	if resp != expected {
+		t.Errorf("SET 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+}
+
+func TestGet(t *testing.T) {
+	// ["GET", "mykey"]
+	message := "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n"
+	resp := sendAndReceive(t, message)
+
+	expected := "$7\r\nmyvalue\r\n"
+	if resp != expected {
+		t.Errorf("GET 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+}
