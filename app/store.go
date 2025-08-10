@@ -1,24 +1,47 @@
 package main
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Store struct {
-	data map[string]string
-	mu   sync.RWMutex
+	items map[string]Entry
+	mu    sync.RWMutex
+}
+
+type Entry struct {
+	Value  string
+	Expire time.Time
 }
 
 func NewStore() *Store {
-	return &Store{data: make(map[string]string)}
+	return &Store{items: make(map[string]Entry)}
 }
 
-func (store *Store) Get(key string) string {
+func (store *Store) Get(key string) (string, bool) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
-	return store.data[key]
+	entry, ok := store.items[key]
+	if !ok {
+		return "", false
+	}
+
+	if !entry.Expire.IsZero() && time.Now().After(entry.Expire) {
+		store.mu.RUnlock()
+		store.mu.Lock()
+		delete(store.items, key)
+		store.mu.Unlock()
+		store.mu.RLock()
+		return "", false
+	}
+
+	return entry.Value, true
 }
 
-func (store *Store) Set(key, value string) {
+func (store *Store) Set(key, value string, expire time.Time) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	store.data[key] = value
+	entry := Entry{Value: value, Expire: expire}
+	store.items[key] = entry
 }
