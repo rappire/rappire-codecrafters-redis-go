@@ -60,9 +60,9 @@ func NewHandler(store *Store) map[string]Handler {
 			}
 		},
 		"RPUSH": func(e CommandEvent) {
-			if len(e.Args) == 2 {
+			if len(e.Args) >= 2 {
 				key := string(e.Args[0])
-				value := string(e.Args[1])
+				value := e.Args[1:]
 				length, ok := store.RPush(key, value)
 				if ok {
 					e.Ctx.Write(AppendInt([]byte{}, length))

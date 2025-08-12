@@ -68,18 +68,19 @@ func (store *Store) Set(key, value string, expire time.Time) {
 	store.items[key] = entry
 }
 
-func (store *Store) RPush(key string, value interface{}) (int, bool) {
+func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 
-	stringValue, ok := value.(string)
-	if !ok {
-		return 0, false
+	valueCount := len(value)
+	stringValues := make([]StringEntity, valueCount)
+	for i, v := range value {
+		stringValues[i] = StringEntity{ValueData: string(v)}
 	}
 
 	if store.items[key] == nil {
 		store.mu.Lock()
 		defer store.mu.Unlock()
-		store.items[key] = ListEntity{ValueDate: []StringEntity{{ValueData: stringValue}}}
-		return 1, true
+		store.items[key] = ListEntity{ValueDate: stringValues}
+		return valueCount, true
 	}
 
 	listEntity, ok := store.items[key].(ListEntity)
@@ -89,7 +90,7 @@ func (store *Store) RPush(key string, value interface{}) (int, bool) {
 
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	listEntity.ValueDate = append(listEntity.ValueDate, StringEntity{ValueData: stringValue})
+	listEntity.ValueDate = append(listEntity.ValueDate, stringValues...)
 	store.items[key] = listEntity
 	return len(listEntity.ValueDate), true
 }
