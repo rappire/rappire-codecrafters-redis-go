@@ -130,6 +130,7 @@ func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 	return len(listEntity.ValueDate), true
 }
 
+// LRange TODO LRange 함수 최적화 필요
 func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
@@ -170,4 +171,21 @@ func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool
 	}
 
 	return byteValues, true
+}
+
+func (store *Store) LLEN(key string) (int, bool) {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	if store.items[key] == nil {
+		return 0, false
+	}
+
+	listEntity, ok := store.items[key].(ListEntity)
+	if !ok {
+		return 0, false
+	}
+
+	return len(listEntity.ValueDate), true
+
 }
