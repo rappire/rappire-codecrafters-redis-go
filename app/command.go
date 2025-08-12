@@ -73,6 +73,20 @@ func NewHandler(store *Store) map[string]Handler {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'RPUSH' command"))
 			}
 		},
+		"LPUSH": func(e CommandEvent) {
+			if len(e.Args) >= 2 {
+				key := string(e.Args[0])
+				value := e.Args[1:]
+				length, ok := store.LPush(key, value)
+				if ok {
+					e.Ctx.Write(AppendInt([]byte{}, length))
+				} else {
+					e.Ctx.Write([]byte("$-1\r\n"))
+				}
+			} else {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'RPUSH' command"))
+			}
+		},
 		"LRANGE": func(e CommandEvent) {
 			if len(e.Args) == 3 {
 				key := string(e.Args[0])
@@ -99,7 +113,6 @@ func NewHandler(store *Store) map[string]Handler {
 			} else {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'LRANGE' command"))
 			}
-
 		},
 	}
 }
