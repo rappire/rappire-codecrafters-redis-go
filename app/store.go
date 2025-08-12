@@ -123,6 +123,14 @@ func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool
 		endPos = length - 1
 	}
 
+	if startPos < 0 {
+		startPos += length
+	}
+
+	if endPos < 0 {
+		endPos += length
+	}
+
 	byteValues := make([][]byte, endPos-startPos+1)
 	for i, v := range listEntity.ValueDate[startPos : endPos+1] {
 		byteValues[i] = []byte(v.ValueData)
