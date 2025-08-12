@@ -180,3 +180,22 @@ func TestLRangeMinusRange(t *testing.T) {
 		return
 	}
 }
+
+func TestLRangeMinusRangeOver(t *testing.T) {
+	fmt.Println("LRange 테스트")
+	message := "*9\r\n$5\r\nRPUSH\r\n$5\r\ngrape\r\n$5\r\napple\r\n$9\r\npineapple\r\n$4\r\npear\r\n$5\r\nmango\r\n$9\r\nraspberry\r\n$6\r\nbanana\r\n$10\r\nstrawberry\r\n"
+	resp := sendAndReceive(t, message)
+	expected := ":7\r\n"
+	if resp != expected {
+		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+
+	message = "*4\r\n$6\r\nLRANGE\r\n$5\r\ngrape\r\n$2\r\n-8\r\n$2\r\n-1\r\n"
+	resp = sendAndReceive(t, message)
+	expected = "*7\r\n$5\r\napple\r\n$9\r\npineapple\r\n$4\r\npear\r\n$5\r\nmango\r\n$9\r\nraspberry\r\n$6\r\nbanana\r\n$10\r\nstrawberry\r\n"
+	if resp != expected {
+		t.Errorf("LRange 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+}

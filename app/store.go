@@ -91,7 +91,35 @@ func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	for _, v := range stringValues {
-		listEntity.ValueDate = append(listEntity.ValueDate, StringEntity{ValueData: v.Value()})
+		listEntity.ValueDate = append(listEntity.ValueDate, v)
+	}
+	store.items[key] = listEntity
+	return len(listEntity.ValueDate), true
+}
+
+func (store *Store) LPush(key string, value [][]byte) (int, bool) {
+	valueCount := len(value)
+	stringValues := make([]StringEntity, valueCount)
+	for i, v := range value {
+		stringValues[i] = StringEntity{ValueData: string(v)}
+	}
+
+	if store.items[key] == nil {
+		store.mu.Lock()
+		defer store.mu.Unlock()
+		store.items[key] = ListEntity{ValueDate: stringValues}
+		return valueCount, true
+	}
+
+	listEntity, ok := store.items[key].(ListEntity)
+	if !ok {
+		return 0, false
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	for _, v := range listEntity.ValueDate {
+		stringValues = append(stringValues, v)
 	}
 	store.items[key] = listEntity
 	return len(listEntity.ValueDate), true
