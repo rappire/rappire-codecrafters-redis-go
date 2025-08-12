@@ -114,7 +114,7 @@ func NewHandler(store *Store) map[string]Handler {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'LRANGE' command"))
 			}
 		},
-		"LLen": func(e CommandEvent) {
+		"LLEN": func(e CommandEvent) {
 			if len(e.Args) >= 1 {
 				key := string(e.Args[0])
 				value, ok := store.LLen(key)
@@ -122,7 +122,7 @@ func NewHandler(store *Store) map[string]Handler {
 					e.Ctx.Write(AppendInt([]byte{}, value))
 				} else {
 					// TODO 확인
-					e.Ctx.Write([]byte("$-1\r\n"))
+					e.Ctx.Write([]byte(":0\r\n"))
 				}
 			} else {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'LLEN' command"))

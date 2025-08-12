@@ -178,7 +178,7 @@ func (store *Store) LLen(key string) (int, bool) {
 	defer store.mu.RUnlock()
 
 	if store.items[key] == nil {
-		return 0, false
+		return 0, true
 	}
 
 	listEntity, ok := store.items[key].(ListEntity)
