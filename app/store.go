@@ -121,6 +121,7 @@ func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 	for _, v := range listEntity.ValueDate {
 		stringValues = append(stringValues, v)
 	}
+	listEntity.ValueDate = stringValues
 	store.items[key] = listEntity
 	return len(listEntity.ValueDate), true
 }
