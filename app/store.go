@@ -120,11 +120,11 @@ func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool
 	}
 
 	if startPos < 0 {
-		startPos += length
+		startPos = max(startPos+length, 0)
 	}
 
 	if endPos < 0 {
-		endPos += length
+		endPos = max(endPos+length, 0)
 	}
 
 	if startPos > endPos {
