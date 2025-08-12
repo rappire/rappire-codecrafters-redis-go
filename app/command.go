@@ -73,5 +73,33 @@ func NewHandler(store *Store) map[string]Handler {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'RPUSH' command"))
 			}
 		},
+		"LRANGE": func(e CommandEvent) {
+			if len(e.Args) == 3 {
+				key := string(e.Args[0])
+				startPos, err := strconv.Atoi(string(e.Args[1]))
+				if err != nil {
+					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LRANGE' command"))
+					return
+				}
+				endPos, err := strconv.Atoi(string(e.Args[2]))
+				if err != nil {
+					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LRANGE' command"))
+					return
+				}
+				valueList, ok := store.LRange(key, startPos, endPos)
+				if !ok {
+					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LRANGE' command"))
+					return
+				}
+				msg := AppendArray([]byte{}, len(valueList))
+				for _, value := range valueList {
+					msg = AppendBulkString(msg, value)
+				}
+				e.Ctx.Write(msg)
+			} else {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'LRANGE' command"))
+			}
+
+		},
 	}
 }

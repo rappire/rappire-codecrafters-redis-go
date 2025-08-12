@@ -90,7 +90,43 @@ func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	listEntity.ValueDate = append(listEntity.ValueDate, stringValues...)
+	for _, v := range stringValues {
+		listEntity.ValueDate = append(listEntity.ValueDate, StringEntity{ValueData: v.Value()})
+	}
 	store.items[key] = listEntity
 	return len(listEntity.ValueDate), true
+}
+
+func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool) {
+	if startPos > endPos {
+		return [][]byte{}, true
+	}
+
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	if store.items[key] == nil {
+		return [][]byte{}, true
+	}
+
+	listEntity, ok := store.items[key].(ListEntity)
+	if !ok {
+		return nil, false
+	}
+
+	length := len(listEntity.ValueDate)
+	if startPos >= length {
+		return [][]byte{}, false
+	}
+
+	if endPos >= length {
+		endPos = length - 1
+	}
+
+	byteValues := make([][]byte, endPos-startPos+1)
+	for i, v := range listEntity.ValueDate[startPos : endPos+1] {
+		byteValues[i] = []byte(v.ValueData)
+	}
+
+	return byteValues, true
 }

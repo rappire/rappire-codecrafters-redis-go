@@ -37,6 +37,7 @@ func TestPing(t *testing.T) {
 	expected := "+PONG\r\n"
 	if resp != expected {
 		t.Errorf("PING 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 }
 
@@ -48,6 +49,7 @@ func TestEcho(t *testing.T) {
 	expected := "$5\r\ngrape\r\n"
 	if resp != expected {
 		t.Errorf("ECHO 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 }
 
@@ -59,6 +61,7 @@ func TestSetAndGet(t *testing.T) {
 	expected := "+OK\r\n"
 	if resp != expected {
 		t.Errorf("SET 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 
 	message = "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n"
@@ -67,6 +70,7 @@ func TestSetAndGet(t *testing.T) {
 	expected = "$7\r\nmyvalue\r\n"
 	if resp != expected {
 		t.Errorf("GET 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 }
 
@@ -77,6 +81,7 @@ func TestExpire(t *testing.T) {
 	expected := "+OK\r\n"
 	if resp != expected {
 		t.Errorf("SET 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 	time.Sleep(150 * time.Millisecond)
 
@@ -85,6 +90,7 @@ func TestExpire(t *testing.T) {
 	expected = "$-1\r\n"
 	if resp != expected {
 		t.Errorf("Expire이 되지 않음")
+		return
 	}
 }
 
@@ -95,6 +101,7 @@ func TestRPush(t *testing.T) {
 	expected := ":1\r\n"
 	if resp != expected {
 		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 }
 
@@ -105,6 +112,7 @@ func TestRPushMultiple(t *testing.T) {
 	expected := ":1\r\n"
 	if resp != expected {
 		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 
 	message = "*3\r\n$5\r\nRPUSH\r\n$10\r\nstrawberry\r\n$9\r\npineapple\r\n"
@@ -112,6 +120,7 @@ func TestRPushMultiple(t *testing.T) {
 	expected = ":2\r\n"
 	if resp != expected {
 		t.Errorf("2번째 RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 
 	message = "*3\r\n$5\r\nRPUSH\r\n$10\r\nstrawberry\r\n$5\r\nmango\r\n"
@@ -119,6 +128,7 @@ func TestRPushMultiple(t *testing.T) {
 	expected = ":3\r\n"
 	if resp != expected {
 		t.Errorf("3번째 RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 }
 
@@ -129,5 +139,25 @@ func TestRPushMultipleArgs(t *testing.T) {
 	expected := ":3\r\n"
 	if resp != expected {
 		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+}
+
+func TestLRange(t *testing.T) {
+	fmt.Println("LRange 테스트")
+	message := "*5\r\n$5\r\nRPUSH\r\n$6\r\nLRange\r\n$1\r\na\r\n$1\r\nb\r\n$1\nc\r\n"
+	resp := sendAndReceive(t, message)
+	expected := ":3\r\n"
+	if resp != expected {
+		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+
+	message = "*4\r\n$6\r\nLRANGE\r\n$6\r\nLRange\r\n:0\r\n:2\r\n"
+	resp = sendAndReceive(t, message)
+	expected = "*3\r\n$1\r\na\r\n$1\r\nb\r\n$1\r\nc\r\n"
+	if resp != expected {
+		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
 	}
 }
