@@ -114,3 +114,27 @@ func TestRPushDouble(t *testing.T) {
 		t.Errorf("2번째 RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
 	}
 }
+
+func TestRPushTriple(t *testing.T) {
+	fmt.Println("RPush 세번 테스트")
+	message := "*3\r\n$5\r\nRPUSH\r\n$10\r\nstrawberry\r\n$9\r\nraspberry\r\n"
+	resp := sendAndReceive(t, message)
+	expected := ":1\r\n"
+	if resp != expected {
+		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+
+	message = "*3\r\n$5\r\nRPUSH\r\n$10\r\nstrawberry\r\n$9\r\npineapple\r\n"
+	resp = sendAndReceive(t, message)
+	expected = ":2\r\n"
+	if resp != expected {
+		t.Errorf("2번째 RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+
+	message = "*3\r\n$5\r\nRPUSH\r\n$10\r\nstrawberry\r\n$5\r\nmango\r\n"
+	resp = sendAndReceive(t, message)
+	expected = ":3\r\n"
+	if resp != expected {
+		t.Errorf("3번째 RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+}

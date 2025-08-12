@@ -90,5 +90,6 @@ func (store *Store) RPush(key string, value interface{}) (int, bool) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	listEntity.ValueDate = append(listEntity.ValueDate, StringEntity{ValueData: stringValue})
+	store.items[key] = listEntity
 	return len(listEntity.ValueDate), true
 }
