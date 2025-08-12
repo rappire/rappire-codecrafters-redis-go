@@ -173,7 +173,7 @@ func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool
 	return byteValues, true
 }
 
-func (store *Store) LLEN(key string) (int, bool) {
+func (store *Store) LLen(key string) (int, bool) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 
