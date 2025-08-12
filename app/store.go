@@ -104,6 +104,10 @@ func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 		stringValues[i] = StringEntity{ValueData: string(v)}
 	}
 
+	for i, j := 0, valueCount-1; i < j; i, j = i+1, j-1 {
+		stringValues[i], stringValues[j] = stringValues[j], stringValues[i]
+	}
+
 	if store.items[key] == nil {
 		store.mu.Lock()
 		defer store.mu.Unlock()
