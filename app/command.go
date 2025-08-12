@@ -43,7 +43,7 @@ func NewHandler(store *Store) map[string]Handler {
 				store.Set(key, value, expire)
 				e.Ctx.Write(AppendString([]byte{}, "OK"))
 			} else {
-				e.Ctx.Write(AppendError(nil, "ERR wrong number of arguments for 'set' command"))
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'SET' command"))
 			}
 		},
 		"GET": func(e CommandEvent) {
@@ -56,7 +56,21 @@ func NewHandler(store *Store) map[string]Handler {
 					e.Ctx.Write([]byte("$-1\r\n")) // nil bulk string
 				}
 			} else {
-				e.Ctx.Write(AppendError(nil, "ERR wrong number of arguments for 'get' command"))
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'GET' command"))
+			}
+		},
+		"RPUSH": func(e CommandEvent) {
+			if len(e.Args) == 2 {
+				key := string(e.Args[0])
+				value := string(e.Args[1])
+				length, ok := store.RPush(key, value)
+				if ok {
+					e.Ctx.Write(AppendInt([]byte{}, length))
+				} else {
+					e.Ctx.Write([]byte("$-1\r\n"))
+				}
+			} else {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'RPUSH' command"))
 			}
 		},
 	}

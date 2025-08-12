@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"testing"
+	"time"
 )
 
 func sendAndReceive(t *testing.T, message string) string {
@@ -15,12 +16,10 @@ func sendAndReceive(t *testing.T, message string) string {
 	fmt.Println("서버에 연결 성공")
 	defer conn.Close()
 
-	// 문자열 전송 (RESP 형식)
 	if _, err := io.WriteString(conn, message); err != nil {
 		t.Fatalf("데이터 전송 실패: %v", err)
 	}
 
-	// 응답 읽기
 	buf := make([]byte, 1024)
 	n, err := conn.Read(buf)
 	if err != nil {
@@ -31,7 +30,6 @@ func sendAndReceive(t *testing.T, message string) string {
 }
 
 func TestPing(t *testing.T) {
-	// PING 명령 RESP 형식: ["PING"]
 	fmt.Println("Ping 테스트")
 	message := "*1\r\n$4\r\nPING\r\n"
 	resp := sendAndReceive(t, message)
@@ -43,20 +41,18 @@ func TestPing(t *testing.T) {
 }
 
 func TestEcho(t *testing.T) {
-	// ECHO grape 명령 RESP 형식: ["ECHO", "grape"]
 	fmt.Println("ECHO 테스트")
 	message := "*2\r\n$4\r\nECHO\r\n$5\r\ngrape\r\n"
 	resp := sendAndReceive(t, message)
 
-	// Bulk String: "$5\r\ngrape\r\n"
 	expected := "$5\r\ngrape\r\n"
 	if resp != expected {
 		t.Errorf("ECHO 응답이 잘못됨. got=%q, want=%q", resp, expected)
 	}
 }
 
-func TestSet(t *testing.T) {
-	// ["SET", "mykey", "myvalue"]
+func TestSetAndGet(t *testing.T) {
+	fmt.Println("Get Set 테스트")
 	message := "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n"
 	resp := sendAndReceive(t, message)
 
@@ -64,15 +60,57 @@ func TestSet(t *testing.T) {
 	if resp != expected {
 		t.Errorf("SET 응답이 잘못됨. got=%q, want=%q", resp, expected)
 	}
-}
 
-func TestGet(t *testing.T) {
-	// ["GET", "mykey"]
-	message := "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n"
-	resp := sendAndReceive(t, message)
+	message = "*2\r\n$3\r\nGET\r\n$5\r\nmykey\r\n"
+	resp = sendAndReceive(t, message)
 
-	expected := "$7\r\nmyvalue\r\n"
+	expected = "$7\r\nmyvalue\r\n"
 	if resp != expected {
 		t.Errorf("GET 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+}
+
+func TestExpire(t *testing.T) {
+	fmt.Println("Set Expire 테스트")
+	message := "*5\r\n$3\r\nSET\r\n$10\r\nstrawberry\r\n$5\r\ngrape\r\n$2\r\nPX\r\n$3\r\n100\r\n"
+	resp := sendAndReceive(t, message)
+	expected := "+OK\r\n"
+	if resp != expected {
+		t.Errorf("SET 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+	time.Sleep(150 * time.Millisecond)
+
+	message = "*2\r\n$3\r\nGET\r\n$10\r\nstrawberry\r\n"
+	resp = sendAndReceive(t, message)
+	expected = "$-1\r\n"
+	if resp != expected {
+		t.Errorf("Expire이 되지 않음")
+	}
+}
+
+func TestRPush(t *testing.T) {
+	fmt.Println("RPush 테스트")
+	message := "*3\r\n$5\r\nRPUSH\r\n$9\r\nRPushTest\r\n$5\r\ngrape\r\n"
+	resp := sendAndReceive(t, message)
+	expected := ":1\r\n"
+	if resp != expected {
+		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+}
+
+func TestRPushDouble(t *testing.T) {
+	fmt.Println("RPush 두번 테스트")
+	message := "*3\r\n$5\r\nRPUSH\r\n$11\r\nRPushDouble\r\n$5\r\ngrape\r\n"
+	resp := sendAndReceive(t, message)
+	expected := ":1\r\n"
+	if resp != expected {
+		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+	}
+
+	message = "*3\r\n$5\r\nRPUSH\r\n$11\r\nRPushDouble\r\n$10\r\nstrawberry\r\n"
+	resp = sendAndReceive(t, message)
+	expected = ":2\r\n"
+	if resp != expected {
+		t.Errorf("2번째 RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
 	}
 }

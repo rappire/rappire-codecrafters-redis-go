@@ -6,17 +6,37 @@ import (
 )
 
 type Store struct {
-	items map[string]Entry
+	items map[string]Entity
 	mu    sync.RWMutex
 }
 
-type Entry struct {
-	Value  string
-	Expire time.Time
+type Entity interface {
+	Expired() bool
+}
+
+type ListEntity struct {
+	ValueDate []StringEntity
+}
+
+func (l ListEntity) Expired() bool {
+	return false
+}
+
+type StringEntity struct {
+	ValueData string
+	Expire    time.Time
+}
+
+func (e StringEntity) Value() string {
+	return e.ValueData
+}
+
+func (e StringEntity) Expired() bool {
+	return !e.Expire.IsZero() && time.Now().After(e.Expire)
 }
 
 func NewStore() *Store {
-	return &Store{items: make(map[string]Entry)}
+	return &Store{items: make(map[string]Entity)}
 }
 
 func (store *Store) Get(key string) (string, bool) {
@@ -26,8 +46,7 @@ func (store *Store) Get(key string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-
-	if !entry.Expire.IsZero() && time.Now().After(entry.Expire) {
+	if entry.Expired() {
 		store.mu.RUnlock()
 		store.mu.Lock()
 		delete(store.items, key)
@@ -35,13 +54,41 @@ func (store *Store) Get(key string) (string, bool) {
 		store.mu.RLock()
 		return "", false
 	}
-
-	return entry.Value, true
+	stringEntity, ok := entry.(StringEntity)
+	if !ok {
+		return "", false
+	}
+	return stringEntity.Value(), true
 }
 
 func (store *Store) Set(key, value string, expire time.Time) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	entry := Entry{Value: value, Expire: expire}
+	entry := StringEntity{ValueData: value, Expire: expire}
 	store.items[key] = entry
+}
+
+func (store *Store) RPush(key string, value interface{}) (int, bool) {
+
+	stringValue, ok := value.(string)
+	if !ok {
+		return 0, false
+	}
+
+	if store.items[key] == nil {
+		store.mu.Lock()
+		defer store.mu.Unlock()
+		store.items[key] = ListEntity{ValueDate: []StringEntity{{ValueData: stringValue}}}
+		return 1, true
+	}
+
+	listEntity, ok := store.items[key].(ListEntity)
+	if !ok {
+		return 0, false
+	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	listEntity.ValueDate = append(listEntity.ValueDate, StringEntity{ValueData: stringValue})
+	return len(listEntity.ValueDate), true
 }
