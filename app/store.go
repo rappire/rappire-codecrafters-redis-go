@@ -98,10 +98,6 @@ func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 }
 
 func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool) {
-	if startPos > endPos {
-		return [][]byte{}, true
-	}
-
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 
@@ -129,6 +125,10 @@ func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool
 
 	if endPos < 0 {
 		endPos += length
+	}
+
+	if startPos > endPos {
+		return [][]byte{}, true
 	}
 
 	byteValues := make([][]byte, endPos-startPos+1)
