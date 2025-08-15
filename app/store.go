@@ -3,6 +3,8 @@ package main
 import (
 	"sync"
 	"time"
+
+	"github.com/codecrafters-io/redis-starter-go/app/list"
 )
 
 type Store struct {
@@ -15,7 +17,7 @@ type Entity interface {
 }
 
 type ListEntity struct {
-	ValueDate []StringEntity
+	ValueData *list.QuickList
 }
 
 func (l ListEntity) Expired() bool {
@@ -70,17 +72,10 @@ func (store *Store) Set(key, value string, expire time.Time) {
 
 func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 
-	valueCount := len(value)
-	stringValues := make([]StringEntity, valueCount)
-	for i, v := range value {
-		stringValues[i] = StringEntity{ValueData: string(v)}
-	}
-
+	store.mu.Lock()
+	defer store.mu.Unlock()
 	if store.items[key] == nil {
-		store.mu.Lock()
-		defer store.mu.Unlock()
-		store.items[key] = ListEntity{ValueDate: stringValues}
-		return valueCount, true
+		store.items[key] = ListEntity{ValueData: list.NewQuickList()}
 	}
 
 	listEntity, ok := store.items[key].(ListEntity)
@@ -88,31 +83,15 @@ func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 		return 0, false
 	}
 
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	for _, v := range stringValues {
-		listEntity.ValueDate = append(listEntity.ValueDate, v)
-	}
-	store.items[key] = listEntity
-	return len(listEntity.ValueDate), true
+	return listEntity.ValueData.RPush(value), ok
 }
 
 func (store *Store) LPush(key string, value [][]byte) (int, bool) {
-	valueCount := len(value)
-	stringValues := make([]StringEntity, valueCount)
-	for i, v := range value {
-		stringValues[i] = StringEntity{ValueData: string(v)}
-	}
 
-	for i, j := 0, valueCount-1; i < j; i, j = i+1, j-1 {
-		stringValues[i], stringValues[j] = stringValues[j], stringValues[i]
-	}
-
+	store.mu.Lock()
+	defer store.mu.Unlock()
 	if store.items[key] == nil {
-		store.mu.Lock()
-		defer store.mu.Unlock()
-		store.items[key] = ListEntity{ValueDate: stringValues}
-		return valueCount, true
+		store.items[key] = ListEntity{ValueData: list.NewQuickList()}
 	}
 
 	listEntity, ok := store.items[key].(ListEntity)
@@ -120,17 +99,10 @@ func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 		return 0, false
 	}
 
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	for _, v := range listEntity.ValueDate {
-		stringValues = append(stringValues, v)
-	}
-	listEntity.ValueDate = stringValues
-	store.items[key] = listEntity
-	return len(listEntity.ValueDate), true
+	return listEntity.ValueData.LPush(value), ok
+
 }
 
-// LRange TODO LRange 함수 최적화 필요
 func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
@@ -144,33 +116,7 @@ func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool
 		return nil, false
 	}
 
-	length := len(listEntity.ValueDate)
-	if startPos >= length {
-		return [][]byte{}, false
-	}
-
-	if endPos >= length {
-		endPos = length - 1
-	}
-
-	if startPos < 0 {
-		startPos = max(startPos+length, 0)
-	}
-
-	if endPos < 0 {
-		endPos = max(endPos+length, 0)
-	}
-
-	if startPos > endPos {
-		return [][]byte{}, true
-	}
-
-	byteValues := make([][]byte, endPos-startPos+1)
-	for i, v := range listEntity.ValueDate[startPos : endPos+1] {
-		byteValues[i] = []byte(v.ValueData)
-	}
-
-	return byteValues, true
+	return listEntity.ValueData.LRange(startPos, endPos), true
 }
 
 func (store *Store) LLen(key string) (int, bool) {
@@ -186,6 +132,22 @@ func (store *Store) LLen(key string) (int, bool) {
 		return 0, false
 	}
 
-	return len(listEntity.ValueDate), true
+	return listEntity.ValueData.Len(), true
 
+}
+
+func (store *Store) LPop(key string, count int) ([][]byte, bool) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	if store.items[key] == nil {
+		return nil, true
+	}
+
+	listEntity, ok := store.items[key].(ListEntity)
+	if !ok {
+		return nil, false
+	}
+
+	return listEntity.ValueData.LPop(count), true
 }

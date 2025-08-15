@@ -128,5 +128,41 @@ func NewHandler(store *Store) map[string]Handler {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'LLEN' command"))
 			}
 		},
+		"LPOP": func(e CommandEvent) {
+			if len(e.Args) == 1 {
+				key := string(e.Args[0])
+				data, ok := store.LPop(key, 0)
+				if !ok {
+					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LPOP' command"))
+					return
+				}
+				result := AppendArray([]byte{}, len(data))
+				for _, value := range data {
+					result = AppendBulkString(result, value)
+				}
+
+				e.Ctx.Write(result)
+			} else if len(e.Args) == 2 {
+				key := string(e.Args[0])
+				count, err := strconv.Atoi(string(e.Args[1]))
+				if err != nil {
+					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LPOP' command"))
+					return
+				}
+				data, ok := store.LPop(key, count)
+				if !ok {
+					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LPOP' command"))
+					return
+				}
+				result := AppendArray([]byte{}, len(data))
+				for _, value := range data {
+					result = AppendBulkString(result, value)
+				}
+
+				e.Ctx.Write(result)
+			} else {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'LPOP' command"))
+			}
+		},
 	}
 }
