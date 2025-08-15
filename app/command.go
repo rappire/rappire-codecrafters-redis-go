@@ -136,12 +136,7 @@ func NewHandler(store *Store) map[string]Handler {
 					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LPOP' command"))
 					return
 				}
-				result := AppendArray([]byte{}, len(data))
-				for _, value := range data {
-					result = AppendBulkString(result, value)
-				}
-
-				e.Ctx.Write(result)
+				e.Ctx.Write(AppendBulkString([]byte{}, data[0]))
 			} else if len(e.Args) == 2 {
 				key := string(e.Args[0])
 				count, err := strconv.Atoi(string(e.Args[1]))
