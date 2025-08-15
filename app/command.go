@@ -131,7 +131,7 @@ func NewHandler(store *Store) map[string]Handler {
 		"LPOP": func(e CommandEvent) {
 			if len(e.Args) == 1 {
 				key := string(e.Args[0])
-				data, ok := store.LPop(key, 0)
+				data, ok := store.LPop(key, 1)
 				if !ok {
 					e.Ctx.Write(AppendError([]byte{}, "ERR wrong arguments for 'LPOP' command"))
 					return
