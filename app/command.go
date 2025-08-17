@@ -176,7 +176,7 @@ func NewHandler(store *Store) map[string]Handler {
 				}
 				msg := AppendArray([]byte{}, 2)
 				msg = AppendBulkString(msg, e.Args[0])
-				msg = AppendBulkString(msg, val[0])
+				msg = AppendBulkString(msg, val)
 				e.Ctx.Write(msg)
 			} else {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'BLPOP' command"))
