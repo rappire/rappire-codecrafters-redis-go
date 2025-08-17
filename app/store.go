@@ -91,7 +91,13 @@ func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 		return 0, false
 	}
 
-	return listEntity.ValueData.RPush(value), ok
+	n := listEntity.ValueData.RPush(value)
+	select {
+	case listEntity.notify <- struct{}{}:
+	default:
+	}
+
+	return n, ok
 }
 
 func (store *Store) LPush(key string, value [][]byte) (int, bool) {
@@ -106,8 +112,13 @@ func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 	if !ok {
 		return 0, false
 	}
+	n := listEntity.ValueData.LPush(value)
+	select {
+	case listEntity.notify <- struct{}{}:
+	default:
+	}
 
-	return listEntity.ValueData.LPush(value), ok
+	return n, ok
 
 }
 
