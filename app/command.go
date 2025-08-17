@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +61,7 @@ func NewHandler(store *Store) map[string]Handler {
 			}
 		},
 		"RPUSH": func(e CommandEvent) {
+			fmt.Println("RPUSH")
 			if len(e.Args) >= 2 {
 				key := string(e.Args[0])
 				value := e.Args[1:]
@@ -160,35 +162,43 @@ func NewHandler(store *Store) map[string]Handler {
 			}
 		},
 		"BLPOP": func(e CommandEvent) {
-			if len(e.Args) == 1 {
-				key := string(e.Args[0])
-				val, ok := store.BLPop(key, 0)
-				if !ok || val == nil {
-					e.Ctx.Write([]byte("$-1\r\n")) // nil
-					return
-				}
-				msg := AppendArray([]byte{}, 2)
-				msg = AppendBulkString(msg, e.Args[0])
-				msg = AppendBulkString(msg, val)
-				e.Ctx.Write(msg)
-			} else if len(e.Args) == 2 {
-				key := string(e.Args[0])
-				second, err := strconv.Atoi(string(e.Args[1]))
-				if err != nil {
-					e.Ctx.Write(AppendError([]byte{}, "ERR invalid timeout"))
-				}
-				val, ok := store.BLPop(key, time.Duration(second)*time.Second)
-				if !ok || val == nil {
-					e.Ctx.Write([]byte("$-1\r\n")) // nil
-					return
-				}
-				msg := AppendArray([]byte{}, 2)
-				msg = AppendBulkString(msg, e.Args[0])
-				msg = AppendBulkString(msg, val)
-				e.Ctx.Write(msg)
-			} else {
+			fmt.Println("BLPOP")
+			if len(e.Args) != 2 {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'BLPOP' command"))
+				return
 			}
+
+			key := string(e.Args[0])
+			secs, err := strconv.Atoi(string(e.Args[1]))
+			if err != nil || secs < 0 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR invalid timeout"))
+				return
+			}
+
+			var to time.Duration
+			if secs == 0 {
+				to = 0
+			} else {
+				to = time.Duration(secs) * time.Second
+			}
+
+			go func() {
+				val, ok := store.BLPop(key, to)
+				if !ok {
+					e.Ctx.Write(AppendError([]byte{}, "ERR BLPOP failed"))
+					return
+				}
+
+				if val == nil {
+					e.Ctx.Write([]byte("$-1\r\n"))
+					return
+				}
+
+				msg := AppendArray([]byte{}, 2)
+				msg = AppendBulkString(msg, []byte(key))
+				msg = AppendBulkString(msg, val)
+				e.Ctx.Write(msg)
+			}()
 		},
 	}
 }

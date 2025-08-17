@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"testing"
 	"time"
 )
@@ -217,4 +218,46 @@ func TestLPush(t *testing.T) {
 		t.Errorf("LPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
 		return
 	}
+}
+
+func blPush(t *testing.T) {
+	fmt.Println("BLPUSH")
+	message := "*3\r\n$5\r\nBLPOP\r\n$9\r\npineapple\r\n$1\r\n0\r\n"
+	resp := sendAndReceive(t, message)
+	expected := "*2\r\n$9\r\npineapple\r\n$10\r\nstrawberry\r\n"
+	if resp != expected {
+		t.Errorf("BLPUSH 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+}
+
+func rPush(t *testing.T) {
+	fmt.Println("RPush")
+	message := "*3\r\n$5\r\nRPUSH\r\n$9\r\npineapple\r\n$10\r\nstrawberry\r\n"
+	resp := sendAndReceive(t, message)
+	expected := ":1\r\n"
+	if resp != expected {
+		t.Errorf("RPush 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+}
+
+func TestBLPush(t *testing.T) {
+	fmt.Println("BLPUSH 테스트")
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		blPush(t)
+	}()
+	time.Sleep(1 * time.Second)
+	fmt.Println("After Sleep")
+	go func() {
+		defer wg.Done()
+		rPush(t)
+	}()
+
+	wg.Wait()
+	fmt.Println("Finish")
 }

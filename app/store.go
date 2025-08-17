@@ -51,17 +51,17 @@ func NewStore() *Store {
 
 func (store *Store) Get(key string) (string, bool) {
 	store.mu.RLock()
-	defer store.mu.RUnlock()
 	entry, ok := store.items[key]
+	store.mu.RUnlock()
 	if !ok {
 		return "", false
 	}
 	if entry.Expired() {
-		store.mu.RUnlock()
 		store.mu.Lock()
-		delete(store.items, key)
+		if cur, exists := store.items[key]; exists && cur == entry {
+			delete(store.items, key)
+		}
 		store.mu.Unlock()
-		store.mu.RLock()
 		return "", false
 	}
 	stringEntity, ok := entry.(StringEntity)
@@ -78,41 +78,49 @@ func (store *Store) Set(key, value string, expire time.Time) {
 	store.items[key] = entry
 }
 
+func (store *Store) ensureList(key string) *ListEntity {
+	if e, ok := store.items[key].(*ListEntity); ok {
+		return e
+	}
+	le := newListEntity()
+	store.items[key] = le
+	return le
+}
+
 func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	if store.items[key] == nil {
-		store.items[key] = newListEntity()
-	}
-
-	listEntity, ok := store.items[key].(*ListEntity)
-	if !ok {
-		return 0, false
-	}
-
+	listEntity := store.ensureList(key)
+	wasEmpty := listEntity.ValueData.Len() == 0
 	n := listEntity.ValueData.RPush(value)
-	listEntity.notify <- struct{}{}
 
-	return n, ok
+	if wasEmpty && n > 0 {
+		select {
+		case listEntity.notify <- struct{}{}:
+		default:
+		}
+	}
+
+	return n, true
 }
 
 func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	if store.items[key] == nil {
-		store.items[key] = newListEntity()
-	}
-
-	listEntity, ok := store.items[key].(*ListEntity)
-	if !ok {
-		return 0, false
-	}
+	listEntity := store.ensureList(key)
+	wasEmpty := listEntity.ValueData.Len() == 0
 	n := listEntity.ValueData.LPush(value)
-	listEntity.notify <- struct{}{}
 
-	return n, ok
+	if wasEmpty && n > 0 {
+		select {
+		case listEntity.notify <- struct{}{}:
+		default:
+		}
+	}
+
+	return n, true
 
 }
 
@@ -166,6 +174,8 @@ func (store *Store) LPop(key string, count int) ([][]byte, bool) {
 }
 
 func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
+	store.mu.Lock()
+
 	if store.items[key] == nil {
 		store.items[key] = newListEntity()
 	}
@@ -175,24 +185,38 @@ func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
 		return []byte{}, false
 	}
 
-	if listEntity.ValueData.Len() != 0 {
-		val, ok := store.LPop(key, 1)
-		return val[0], ok
+	if listEntity.ValueData.Len() > 0 {
+		val := listEntity.ValueData.LPop(1)
+		store.mu.Unlock()
+		if len(val) == 0 {
+			return nil, true
+		}
+		return val[0], true
 	}
+	notify := listEntity.notify
+	store.mu.Unlock()
 
 	if timeOut > 0 {
 		select {
-		case <-listEntity.notify:
-			store.mu.Lock()
-			defer store.mu.Unlock()
-			val, ok := store.LPop(key, 1)
-			return val[0], ok
+		case <-notify:
 		case <-time.After(timeOut):
 			return nil, true
 		}
 	} else {
-		<-listEntity.notify
-		val, ok := store.LPop(key, 1)
-		return val[0], ok
+		<-notify
 	}
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	listEntity, ok = store.items[key].(*ListEntity)
+	if !ok {
+		return nil, true
+	}
+
+	out := listEntity.ValueData.LPop(1)
+	if len(out) == 0 {
+		return nil, true
+	}
+	return out[0], true
 }
