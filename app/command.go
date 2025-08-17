@@ -162,7 +162,15 @@ func NewHandler(store *Store) map[string]Handler {
 		"BLPOP": func(e CommandEvent) {
 			if len(e.Args) == 1 {
 				key := string(e.Args[0])
-				store.BLPop(key, 0)
+				val, ok := store.BLPop(key, 0)
+				if !ok || val == nil {
+					e.Ctx.Write([]byte("$-1\r\n")) // nil
+					return
+				}
+				msg := AppendArray([]byte{}, 2)
+				msg = AppendBulkString(msg, e.Args[0])
+				msg = AppendBulkString(msg, val)
+				e.Ctx.Write(msg)
 			} else if len(e.Args) == 2 {
 				key := string(e.Args[0])
 				second, err := strconv.Atoi(string(e.Args[1]))

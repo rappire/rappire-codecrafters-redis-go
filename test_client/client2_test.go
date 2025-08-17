@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/redis/go-redis/v9"
@@ -36,7 +37,29 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestBLPOP(t *testing.T) {
+func testBLPOP() {
 	result := rdb.BLPop(ctx, 1, "testBLPOP")
 	fmt.Println(result.Val())
+}
+
+func testPush() {
+	push := rdb.RPush(ctx, "testBLPOP", "data")
+	fmt.Println(push.Val())
+}
+
+func TestBLPOPAndPush(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		testBLPOP()
+	}()
+
+	go func() {
+		defer wg.Done()
+		testPush()
+	}()
+
+	wg.Wait()
 }

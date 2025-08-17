@@ -40,8 +40,8 @@ func main() {
 
 	go func() {
 		for ev := range eventChan {
-			if handlers, ok := handlers[ev.Command]; ok {
-				handlers(ev)
+			if handler, ok := handlers[ev.Command]; ok {
+				handler(ev)
 			} else {
 				ev.Ctx.Write(AppendError(nil, "ERR unknown command '"+ev.Command+"'"))
 			}
