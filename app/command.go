@@ -169,7 +169,7 @@ func NewHandler(store *Store) map[string]Handler {
 			}
 
 			key := string(e.Args[0])
-			secs, err := strconv.ParseFloat(string(e.Args[1]), 32)
+			secs, err := strconv.ParseFloat(string(e.Args[1]), 64)
 			if err != nil || secs < 0 {
 				e.Ctx.Write(AppendError([]byte{}, "ERR invalid timeout"))
 				return
@@ -179,7 +179,7 @@ func NewHandler(store *Store) map[string]Handler {
 			if secs == 0 {
 				to = 0
 			} else {
-				to = time.Duration(secs) * time.Second
+				to = time.Duration(secs * float64(time.Second))
 			}
 
 			go func() {
