@@ -18,10 +18,18 @@ type Entity interface {
 
 type ListEntity struct {
 	ValueData *list.QuickList
+	notify    chan struct{}
 }
 
 func (l ListEntity) Expired() bool {
 	return false
+}
+
+func newListEntity() ListEntity {
+	return ListEntity{
+		ValueData: list.NewQuickList(),
+		notify:    make(chan struct{}, 1),
+	}
 }
 
 type StringEntity struct {
@@ -75,7 +83,7 @@ func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	if store.items[key] == nil {
-		store.items[key] = ListEntity{ValueData: list.NewQuickList()}
+		store.items[key] = newListEntity()
 	}
 
 	listEntity, ok := store.items[key].(ListEntity)
@@ -91,7 +99,7 @@ func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	if store.items[key] == nil {
-		store.items[key] = ListEntity{ValueData: list.NewQuickList()}
+		store.items[key] = newListEntity()
 	}
 
 	listEntity, ok := store.items[key].(ListEntity)
@@ -150,4 +158,36 @@ func (store *Store) LPop(key string, count int) ([][]byte, bool) {
 	}
 
 	return listEntity.ValueData.LPop(count), true
+}
+
+func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
+	store.mu.Lock()
+	if store.items[key] == nil {
+		store.items[key] = newListEntity()
+	}
+
+	listEntity, ok := store.items[key].(ListEntity)
+	if !ok {
+		return []byte{}, false
+	}
+
+	if listEntity.ValueData.Len() != 0 {
+		val, ok := store.LPop(key, 1)
+		return val[0], ok
+	}
+
+	store.mu.Unlock()
+	if timeOut > 0 {
+		select {
+		case <-listEntity.notify:
+			val, ok := store.LPop(key, 1)
+			return val[0], ok
+		case <-time.After(timeOut):
+			return nil, true
+		}
+	} else {
+		<-listEntity.notify
+		val, ok := store.LPop(key, 1)
+		return val[0], ok
+	}
 }

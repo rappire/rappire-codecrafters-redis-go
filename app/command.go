@@ -159,5 +159,28 @@ func NewHandler(store *Store) map[string]Handler {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'LPOP' command"))
 			}
 		},
+		"BLPOP": func(e CommandEvent) {
+			if len(e.Args) == 1 {
+				key := string(e.Args[0])
+				store.BLPop(key, 0)
+			} else if len(e.Args) == 2 {
+				key := string(e.Args[0])
+				second, err := strconv.Atoi(string(e.Args[1]))
+				if err != nil {
+					e.Ctx.Write(AppendError([]byte{}, "ERR invalid timeout"))
+				}
+				val, ok := store.BLPop(key, time.Duration(second)*time.Second)
+				if !ok || val == nil {
+					e.Ctx.Write([]byte("$-1\r\n")) // nil
+					return
+				}
+				msg := AppendArray([]byte{}, 2)
+				msg = AppendBulkString(msg, e.Args[0])
+				msg = AppendBulkString(msg, val[0])
+				e.Ctx.Write(msg)
+			} else {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'BLPOP' command"))
+			}
+		},
 	}
 }
