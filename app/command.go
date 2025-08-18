@@ -217,10 +217,16 @@ func NewHandler(store *Store) map[string]Handler {
 
 			key := string(e.Args[0])
 			id := string(e.Args[1])
-			var fields map[string]string
-			for _, field := range e.Args[2:] {
-				split := strings.Split(string(field), " ")
-				fields[split[0]] = split[1]
+			fields := make(map[string]string)
+
+			count := len(e.Args[2:])
+			if count%2 != 0 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'XADD' command"))
+				return
+			}
+
+			for i := range count / 2 {
+				fields[string(e.Args[2+i*2])] = string(e.Args[3+i*2])
 			}
 			id, ok := store.XAdd(key, id, fields)
 			if !ok {

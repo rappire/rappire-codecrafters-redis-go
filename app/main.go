@@ -83,7 +83,11 @@ func handleConnection(ctx *ConnContext, eventChan chan CommandEvent) {
 			for _, b := range resp.Arr[1:] {
 				args = append(args, b.Data)
 			}
-			fmt.Println(cmd, args)
+			fmt.Print(cmd)
+			for _, b := range args {
+				fmt.Printf(" %s", string(b))
+			}
+			fmt.Println()
 			eventChan <- CommandEvent{Command: cmd, Args: args, Ctx: ctx}
 		}
 	}
