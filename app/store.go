@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/codecrafters-io/redis-starter-go/app/list"
 
 	"sync"
@@ -14,6 +16,32 @@ type Store struct {
 
 type Entity interface {
 	Expired() bool
+}
+
+type StreamEntry struct {
+	Id     string
+	Fields map[string]string
+}
+
+type StreamEntity struct {
+	Entries []StreamEntry
+	LastMs  int64
+	Seq     int64
+}
+
+func (s StreamEntity) Expired() bool {
+	return false
+}
+
+func (s StreamEntity) nextId() string {
+	now := time.Now().UnixMilli()
+	if now == s.LastMs {
+		s.Seq++
+	} else {
+		s.LastMs = now
+		s.Seq = 0
+	}
+	return fmt.Sprintf("%d-%d", s.LastMs, s.Seq)
 }
 
 type ListEntity struct {
@@ -221,21 +249,49 @@ func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
 	return out[0], true
 }
 
-func (store *Store) Type(key string) []byte {
+func (store *Store) Type(key string) string {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 
 	entity := store.items[key]
 	if entity == nil {
-		return []byte("none")
+		return "none"
 	}
 
 	switch entity.(type) {
 	case StringEntity:
-		return []byte("string")
+		return "string"
 	case ListEntity:
-		return []byte("list")
+		return "list"
+	case StreamEntity:
+		return "stream"
 	default:
-		return []byte("none")
+		return "none"
 	}
+}
+
+func (store *Store) ensureStream(key string) *StreamEntity {
+	if streamEntity, ok := store.items[key].(*StreamEntity); ok {
+		return streamEntity
+	}
+
+	streamEntity := &StreamEntity{}
+	store.items[key] = streamEntity
+	return streamEntity
+}
+
+func (store *Store) XAdd(key string, id string, fields map[string]string) (string, bool) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	streamEntity := store.ensureStream(key)
+
+	if id == "*" {
+		id = streamEntity.nextId()
+	}
+
+	entry := StreamEntry{Id: id, Fields: fields}
+	streamEntity.Entries = append(streamEntity.Entries, entry)
+
+	return id, true
 }

@@ -203,10 +203,31 @@ func NewHandler(store *Store) map[string]Handler {
 		"TYPE": func(e CommandEvent) {
 			if len(e.Args) != 1 {
 				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'TYPE' command"))
+				return
 			}
 			key := string(e.Args[0])
 			dataType := store.Type(key)
-			e.Ctx.Write(AppendBulkString([]byte{}, dataType))
+			e.Ctx.Write(AppendString([]byte{}, dataType))
+		},
+		"XADD": func(e CommandEvent) {
+			if len(e.Args) < 3 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'XADD' command"))
+				return
+			}
+
+			key := string(e.Args[0])
+			id := string(e.Args[1])
+			var fields map[string]string
+			for _, field := range e.Args[2:] {
+				split := strings.Split(string(field), " ")
+				fields[split[0]] = split[1]
+			}
+			id, ok := store.XAdd(key, id, fields)
+			if !ok {
+				e.Ctx.Write(AppendError([]byte{}, "ERR XADD failed"))
+				return
+			}
+			e.Ctx.Write(AppendBulkString([]byte{}, []byte(id)))
 		},
 	}
 }
