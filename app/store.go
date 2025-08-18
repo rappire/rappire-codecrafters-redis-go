@@ -102,7 +102,7 @@ func (store *Store) Get(key string) (string, bool) {
 func (store *Store) Set(key, value string, expire time.Time) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	entry := StringEntity{ValueData: value, Expire: expire}
+	entry := &StringEntity{ValueData: value, Expire: expire}
 	store.items[key] = entry
 }
 
@@ -259,11 +259,11 @@ func (store *Store) Type(key string) string {
 	}
 
 	switch entity.(type) {
-	case StringEntity:
+	case *StringEntity:
 		return "string"
-	case ListEntity:
+	case *ListEntity:
 		return "list"
-	case StreamEntity:
+	case *StreamEntity:
 		return "stream"
 	default:
 		return "none"

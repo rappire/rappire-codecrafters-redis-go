@@ -84,3 +84,30 @@ func TestXAdd(t *testing.T) {
 		t.Fatalf("expected test, got %s", add.Val())
 	}
 }
+
+func TestXAddType(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "test2",
+		ID:     "test",
+		Values: map[string]interface{}{
+			"foo": "bar",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	if add.Val() != "test" {
+		t.Fatalf("expected test, got %s", add.Val())
+	}
+
+	cmd := rdb.Type(ctx, "test2")
+	if cmd.Err() != nil {
+		t.Fatalf("XAdd failed: %v", cmd.Err())
+	}
+
+	if cmd.Val() != "stream" {
+		t.Fatalf("expected stream, got %s", cmd.Val())
+	}
+}
