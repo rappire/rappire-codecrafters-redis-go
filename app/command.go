@@ -230,7 +230,7 @@ func NewHandler(store *Store) map[string]Handler {
 			}
 			id, ok := store.XAdd(key, id, fields)
 			if !ok {
-				e.Ctx.Write(AppendError([]byte{}, "ERR XADD failed"))
+				e.Ctx.Write(AppendError([]byte{}, "ERR The ID specified in XADD is equal or smaller than the target stream top item"))
 				return
 			}
 			e.Ctx.Write(AppendBulkString([]byte{}, []byte(id)))

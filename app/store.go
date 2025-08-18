@@ -44,6 +44,18 @@ func (s StreamEntity) nextId() string {
 	return fmt.Sprintf("%d-%d", s.LastMs, s.Seq)
 }
 
+func (s StreamEntity) validId(id string) bool {
+	if len(s.Entries) == 0 {
+		return true
+	}
+	lastId := s.Entries[len(s.Entries)-1].Id
+
+	if lastId >= id {
+		return false
+	}
+	return true
+}
+
 type ListEntity struct {
 	ValueData *list.QuickList
 	notify    chan struct{}
@@ -288,6 +300,10 @@ func (store *Store) XAdd(key string, id string, fields map[string]string) (strin
 
 	if id == "*" {
 		id = streamEntity.nextId()
+	}
+
+	if !streamEntity.validId(id) {
+		return "", false
 	}
 
 	entry := StreamEntry{Id: id, Fields: fields}
