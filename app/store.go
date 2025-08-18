@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/list"
 
@@ -45,13 +46,23 @@ func (s StreamEntity) nextId() string {
 }
 
 func (s StreamEntity) validId(id string) error {
+	idSplit := strings.Split(id, "-")
+
+	if len(idSplit) != 2 {
+		return fmt.Errorf("invalid id")
+	}
+
+	if idSplit[0] <= "0" && idSplit[1] <= "0" {
+		return fmt.Errorf("ERR The ID specified in XADD must be greater than 0-0")
+	}
+
 	if len(s.Entries) == 0 {
 		return nil
 	}
 	lastId := s.Entries[len(s.Entries)-1].Id
 
 	if lastId >= id {
-		return fmt.Errorf("ERR The ID specified in XADD is equal or smaller than %s", lastId)
+		return fmt.Errorf("ERR The ID specified in XADD is equal or smaller than the target stream top item")
 	}
 	return nil
 }
