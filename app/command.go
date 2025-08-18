@@ -200,5 +200,13 @@ func NewHandler(store *Store) map[string]Handler {
 				e.Ctx.Write(msg)
 			}()
 		},
+		"TYPE": func(e CommandEvent) {
+			if len(e.Args) != 1 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'TYPE' command"))
+			}
+			key := string(e.Args[0])
+			dataType := store.Type(key)
+			e.Ctx.Write(AppendBulkString([]byte{}, dataType))
+		},
 	}
 }

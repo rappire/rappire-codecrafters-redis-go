@@ -1,4 +1,4 @@
-package main_test
+package test_client
 
 import (
 	"fmt"

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/codecrafters-io/redis-starter-go/app/list"
+
 	"sync"
 	"time"
-
-	"github.com/codecrafters-io/redis-starter-go/app/list"
 )
 
 type Store struct {
@@ -219,4 +219,23 @@ func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
 		return nil, true
 	}
 	return out[0], true
+}
+
+func (store *Store) Type(key string) []byte {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	entity := store.items[key]
+	if entity == nil {
+		return []byte("none")
+	}
+
+	switch entity.(type) {
+	case StringEntity:
+		return []byte("string")
+	case ListEntity:
+		return []byte("list")
+	default:
+		return []byte("none")
+	}
 }
