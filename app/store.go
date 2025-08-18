@@ -92,7 +92,7 @@ func (store *Store) Get(key string) (string, bool) {
 		store.mu.Unlock()
 		return "", false
 	}
-	stringEntity, ok := entry.(StringEntity)
+	stringEntity, ok := entry.(*StringEntity)
 	if !ok {
 		return "", false
 	}
