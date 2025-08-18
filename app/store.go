@@ -44,16 +44,16 @@ func (s StreamEntity) nextId() string {
 	return fmt.Sprintf("%d-%d", s.LastMs, s.Seq)
 }
 
-func (s StreamEntity) validId(id string) bool {
+func (s StreamEntity) validId(id string) error {
 	if len(s.Entries) == 0 {
-		return true
+		return nil
 	}
 	lastId := s.Entries[len(s.Entries)-1].Id
 
 	if lastId >= id {
-		return false
+		return fmt.Errorf("ERR The ID specified in XADD is equal or smaller than %s", lastId)
 	}
-	return true
+	return nil
 }
 
 type ListEntity struct {
@@ -292,7 +292,7 @@ func (store *Store) ensureStream(key string) *StreamEntity {
 	return streamEntity
 }
 
-func (store *Store) XAdd(key string, id string, fields map[string]string) (string, bool) {
+func (store *Store) XAdd(key string, id string, fields map[string]string) (string, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
@@ -302,12 +302,13 @@ func (store *Store) XAdd(key string, id string, fields map[string]string) (strin
 		id = streamEntity.nextId()
 	}
 
-	if !streamEntity.validId(id) {
-		return "", false
+	err := streamEntity.validId(id)
+	if err != nil {
+		return "", err
 	}
 
 	entry := StreamEntry{Id: id, Fields: fields}
 	streamEntity.Entries = append(streamEntity.Entries, entry)
 
-	return id, true
+	return id, nil
 }

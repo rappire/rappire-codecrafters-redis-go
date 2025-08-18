@@ -125,7 +125,7 @@ func TestXAddIdFail(t *testing.T) {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
 
-	if add.Val() != "test" {
+	if add.Val() != "test3" {
 		t.Fatalf("expected test, got %s", add.Val())
 	}
 
@@ -140,4 +140,6 @@ func TestXAddIdFail(t *testing.T) {
 	if add.Err() == nil {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
+
+	fmt.Println(add.Err())
 }

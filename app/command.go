@@ -228,9 +228,9 @@ func NewHandler(store *Store) map[string]Handler {
 			for i := range count / 2 {
 				fields[string(e.Args[2+i*2])] = string(e.Args[3+i*2])
 			}
-			id, ok := store.XAdd(key, id, fields)
-			if !ok {
-				e.Ctx.Write(AppendError([]byte{}, "ERR The ID specified in XADD is equal or smaller than the target stream top item"))
+			id, err := store.XAdd(key, id, fields)
+			if err != nil {
+				e.Ctx.Write(AppendError([]byte{}, err.Error()))
 				return
 			}
 			e.Ctx.Write(AppendBulkString([]byte{}, []byte(id)))
