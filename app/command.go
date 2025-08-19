@@ -256,11 +256,10 @@ func NewHandler(store *Store) map[string]Handler {
 
 			cmd := AppendArray([]byte{}, len(entries))
 			for _, entry := range entries {
-				entryArray := AppendArray([]byte{}, 1+len(entry.Fields))
+				entryArray := AppendArray([]byte{}, 2)
 				entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
-
+				entryArray = AppendArray(entryArray, len(entry.Fields))
 				for _, f := range entry.Fields {
-					entryArray = AppendArray(entryArray, 2)
 					entryArray = AppendBulkString(entryArray, []byte(f.Key))
 					entryArray = AppendBulkString(entryArray, []byte(f.Value))
 				}
@@ -269,6 +268,69 @@ func NewHandler(store *Store) map[string]Handler {
 			}
 
 			e.Ctx.Write(cmd)
+		},
+		"XREAD": func(e CommandEvent) {
+			if len(e.Args) < 3 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'XREAD' command"))
+				return
+			}
+			i := 0
+			blockDur := time.Duration(0)
+
+			if strings.ToUpper(string(e.Args[i])) == "BLOCK" {
+				i++
+				ms, err := strconv.Atoi(string(e.Args[i]))
+				if err != nil || ms < 0 {
+					e.Ctx.Write(AppendError([]byte{}, "ERR invalid BLOCK value"))
+					return
+				}
+				blockDur = time.Duration(ms) * time.Millisecond
+				i++
+			}
+
+			if strings.ToUpper(string(e.Args[i])) != "STREAMS" {
+				e.Ctx.Write(AppendError([]byte{}, "ERR syntax error, expected STREAMS"))
+				return
+			}
+			i++
+
+			numKeys := (len(e.Args) - i) / 2
+			if numKeys <= 0 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR syntax error, missing keys or IDs"))
+				return
+			}
+
+			keys := make([]string, numKeys)
+			ids := make([]string, numKeys)
+
+			for k := 0; k < numKeys; k++ {
+				keys[k] = string(e.Args[i+k])
+			}
+
+			for k := 0; k < numKeys; k++ {
+				ids[k] = string(e.Args[i+k+numKeys])
+			}
+
+			entries, err := store.XRead(blockDur, keys, ids)
+			if err != nil {
+				e.Ctx.Write(AppendError([]byte{}, err.Error()))
+			}
+			cmd := AppendArray([]byte{}, numKeys)
+			for j, key := range keys {
+				cmd = AppendArray(cmd, 2)
+				cmd = AppendBulkString(cmd, []byte(key))
+				cmd = AppendArray(cmd, len(entries[j]))
+				for _, entry := range entries[j] {
+					entryArray := AppendArray([]byte{}, 2)
+					entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
+					entryArray = AppendArray(entryArray, len(entry.Fields))
+					for _, f := range entry.Fields {
+						entryArray = AppendBulkString(entryArray, []byte(f.Key))
+						entryArray = AppendBulkString(entryArray, []byte(f.Value))
+					}
+					cmd = append(cmd, entryArray...)
+				}
+			}
 		},
 	}
 }

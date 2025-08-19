@@ -259,3 +259,32 @@ func (store *Store) XRange(key string, start string, end string) ([]entity.Strea
 	}
 	return result, nil
 }
+
+// TODO 포인터로 최적화 필요
+func (store *Store) XRead(dur time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
+	var streamIds []*entity.StreamId
+	result := make([][]entity.StreamEntry, len(ids))
+
+	for i, id := range ids {
+		bound, err := entity.ParseBound(id)
+		if err != nil {
+			return result, nil
+		}
+		streamIds[i] = bound
+	}
+
+	store.mu.RLock()
+	for i, key := range keys {
+		stream := store.ensureStream(key)
+		result[i] = []entity.StreamEntry{}
+		for _, e := range stream.Entries {
+			if e.Id.Less(streamIds[i]) {
+				continue
+			}
+			result[i] = append(result[i], e)
+		}
+	}
+	store.mu.RUnlock()
+
+	return result, nil
+}
