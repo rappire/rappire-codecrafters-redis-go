@@ -233,5 +233,51 @@ func TestXRange(t *testing.T) {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
 
-	rdb.XRange(ctx, "xrange", "0-2", "0-3")
+	xRange := rdb.XRange(ctx, "xrange", "0-2", "0-3")
+	fmt.Println(xRange.Val())
+}
+
+func TestXRead(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "xread",
+		ID:     "0-1",
+		Values: map[string]interface{}{
+			"foo1": "bar1",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	add = rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "xread",
+		ID:     "0-2",
+		Values: map[string]interface{}{
+			"foo2": "bar2",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	add = rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "xread",
+		ID:     "0-3",
+		Values: map[string]interface{}{
+			"foo3": "bar3",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+	read := rdb.XRead(ctx, &redis.XReadArgs{
+		Streams: []string{"xread"},
+		ID:      "0-1",
+	})
+
+	fmt.Println(read.Val())
+
 }

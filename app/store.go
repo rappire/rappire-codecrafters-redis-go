@@ -262,7 +262,7 @@ func (store *Store) XRange(key string, start string, end string) ([]entity.Strea
 
 // TODO 포인터로 최적화 필요
 func (store *Store) XRead(dur time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
-	var streamIds []*entity.StreamId
+	streamIds := make([]*entity.StreamId, len(ids))
 	result := make([][]entity.StreamEntry, len(ids))
 
 	for i, id := range ids {
@@ -278,7 +278,10 @@ func (store *Store) XRead(dur time.Duration, keys []string, ids []string) ([][]e
 		stream := store.ensureStream(key)
 		result[i] = []entity.StreamEntry{}
 		for _, e := range stream.Entries {
-			if e.Id.Less(streamIds[i]) {
+			if e.Id == nil {
+				continue
+			}
+			if e.Id.Under(streamIds[i]) {
 				continue
 			}
 			result[i] = append(result[i], e)

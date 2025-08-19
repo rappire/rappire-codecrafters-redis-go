@@ -258,7 +258,7 @@ func NewHandler(store *Store) map[string]Handler {
 			for _, entry := range entries {
 				entryArray := AppendArray([]byte{}, 2)
 				entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
-				entryArray = AppendArray(entryArray, len(entry.Fields))
+				entryArray = AppendArray(entryArray, len(entry.Fields)*2)
 				for _, f := range entry.Fields {
 					entryArray = AppendBulkString(entryArray, []byte(f.Key))
 					entryArray = AppendBulkString(entryArray, []byte(f.Value))
@@ -323,7 +323,7 @@ func NewHandler(store *Store) map[string]Handler {
 				for _, entry := range entries[j] {
 					entryArray := AppendArray([]byte{}, 2)
 					entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
-					entryArray = AppendArray(entryArray, len(entry.Fields))
+					entryArray = AppendArray(entryArray, len(entry.Fields)*2)
 					for _, f := range entry.Fields {
 						entryArray = AppendBulkString(entryArray, []byte(f.Key))
 						entryArray = AppendBulkString(entryArray, []byte(f.Value))
@@ -331,6 +331,7 @@ func NewHandler(store *Store) map[string]Handler {
 					cmd = append(cmd, entryArray...)
 				}
 			}
+			e.Ctx.Write(cmd)
 		},
 	}
 }

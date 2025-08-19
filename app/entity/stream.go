@@ -23,6 +23,16 @@ func (s *StreamId) Less(id *StreamId) bool {
 	}
 }
 
+func (s *StreamId) Under(id *StreamId) bool {
+	if s.Millis < id.Millis {
+		return true
+	} else if s.Millis > id.Millis {
+		return false
+	} else {
+		return s.Seq <= id.Seq
+	}
+}
+
 type FieldValue struct{ Key, Value string }
 
 type StreamEntry struct {
@@ -41,7 +51,7 @@ func (s *StreamEntity) Expired() bool {
 }
 
 func NewStreamEntity() *StreamEntity {
-	return &StreamEntity{LastMillis: 0, LastSeq: 0, Entries: make([]StreamEntry, 10)}
+	return &StreamEntity{LastMillis: 0, LastSeq: 0, Entries: make([]StreamEntry, 0)}
 }
 
 func parseStreamId(id string) (*StreamId, error) {
