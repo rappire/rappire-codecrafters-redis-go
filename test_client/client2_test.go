@@ -195,3 +195,43 @@ func TestXAddStar(t *testing.T) {
 	}
 	fmt.Println(add.Val())
 }
+
+func TestXRange(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "xrange",
+		ID:     "0-1",
+		Values: map[string]interface{}{
+			"foo1": "bar1",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	add = rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "xrange",
+		ID:     "0-2",
+		Values: map[string]interface{}{
+			"foo2": "bar2",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	add = rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "xrange",
+		ID:     "0-3",
+		Values: map[string]interface{}{
+			"foo3": "bar3",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	rdb.XRange(ctx, "xrange", "0-2", "0-3")
+}

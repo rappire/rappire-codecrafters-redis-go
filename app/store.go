@@ -250,6 +250,9 @@ func (store *Store) XRange(key string, start string, end string) ([]entity.Strea
 
 	var result []entity.StreamEntry
 	for _, e := range streamEntity.Entries {
+		if e.Id == nil {
+			continue
+		}
 		if !e.Id.Less(startId) && !endId.Less(e.Id) {
 			result = append(result, e)
 		}
