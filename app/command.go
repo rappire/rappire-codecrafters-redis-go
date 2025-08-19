@@ -256,7 +256,7 @@ func NewHandler(store *Store) map[string]Handler {
 
 			cmd := AppendArray([]byte{}, len(entries))
 			for _, entry := range entries {
-				entryArray := AppendArray([]byte{}, 1+len(entry.Fields)*2)
+				entryArray := AppendArray([]byte{}, 1+len(entry.Fields))
 				entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
 
 				for _, f := range entry.Fields {
