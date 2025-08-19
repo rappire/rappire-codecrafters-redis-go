@@ -180,3 +180,18 @@ func TestXAddStarSeq(t *testing.T) {
 		t.Fatalf("expected 0-2, got %s", add.Val())
 	}
 }
+
+func TestXAddStar(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "test10",
+		ID:     "*",
+		Values: map[string]interface{}{
+			"foo": "bar",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+	fmt.Println(add.Val())
+}

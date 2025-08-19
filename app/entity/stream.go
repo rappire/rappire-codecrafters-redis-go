@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type StreamId struct {
@@ -70,7 +71,7 @@ func (s *StreamEntity) GenerateId(requestedId string) (*StreamId, error) {
 	fmt.Println(id.Millis, id.Seq)
 
 	if id.Millis == -1 {
-		id.Millis = s.LastMillis
+		id.Millis = int(time.Now().UnixMilli())
 		id.Seq = s.LastSeq + 1
 		s.LastMillis = id.Millis
 		s.LastSeq = id.Seq
