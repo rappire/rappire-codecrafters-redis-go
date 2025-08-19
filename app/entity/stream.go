@@ -121,8 +121,8 @@ func (s *StreamEntity) GenerateId(requestedId string) (*StreamId, error) {
 }
 
 var (
-	MinID = StreamId{Millis: 0, Seq: 0}                           // "-"
-	MaxID = StreamId{Millis: math.MaxUint64, Seq: math.MaxUint64} // "+"
+	MinID = StreamId{Millis: 0, Seq: 0}                     // "-"
+	MaxID = StreamId{Millis: math.MaxInt, Seq: math.MaxInt} // "+"
 )
 
 func ParseBound(id string) (*StreamId, error) {
