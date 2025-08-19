@@ -229,8 +229,8 @@ func NewHandler(store *Store) map[string]Handler {
 
 			for i := range count / 2 {
 				fields = append(fields, entity.FieldValue{
-					Key:   string(e.Args[i]),
-					Value: string(e.Args[i+1]),
+					Key:   string(e.Args[2*i+2]),
+					Value: string(e.Args[2*i+3]),
 				})
 			}
 			id, err := store.XAdd(key, id, fields)
