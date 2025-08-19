@@ -18,8 +18,11 @@ func TestMain(m *testing.M) {
 	// 테스트 전체에서 1회만 실행됨
 	fmt.Println("🔌 Redis 연결 초기화...")
 	rdb = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-		DB:   0,
+		Addr:         "localhost:6379",
+		DB:           0,
+		DialTimeout:  0, // 연결 무제한 대기
+		ReadTimeout:  0, // 읽기 무제한 대기
+		WriteTimeout: 0, // 쓰기 무제한 대기
 	})
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
@@ -70,7 +73,7 @@ func TestRedisType(t *testing.T) {
 func TestXAdd(t *testing.T) {
 	add := rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test",
-		ID:     "test",
+		ID:     "0-1",
 		Values: map[string]interface{}{
 			"foo": "bar",
 		},
@@ -80,15 +83,15 @@ func TestXAdd(t *testing.T) {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
 
-	if add.Val() != "test" {
-		t.Fatalf("expected test, got %s", add.Val())
+	if add.Val() != "0-1" {
+		t.Fatalf("expected 0-1, got %s", add.Val())
 	}
 }
 
 func TestXAddType(t *testing.T) {
 	add := rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test2",
-		ID:     "test",
+		ID:     "1-1",
 		Values: map[string]interface{}{
 			"foo": "bar",
 		},
@@ -98,8 +101,8 @@ func TestXAddType(t *testing.T) {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
 
-	if add.Val() != "test" {
-		t.Fatalf("expected test, got %s", add.Val())
+	if add.Val() != "1-1" {
+		t.Fatalf("expected 1-1, got %s", add.Val())
 	}
 
 	cmd := rdb.Type(ctx, "test2")
@@ -115,7 +118,7 @@ func TestXAddType(t *testing.T) {
 func TestXAddIdFail(t *testing.T) {
 	add := rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test4",
-		ID:     "test3",
+		ID:     "0-1",
 		Values: map[string]interface{}{
 			"foo": "bar",
 		},
@@ -125,13 +128,13 @@ func TestXAddIdFail(t *testing.T) {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
 
-	if add.Val() != "test3" {
-		t.Fatalf("expected test, got %s", add.Val())
+	if add.Val() != "0-1" {
+		t.Fatalf("expected 0-1, got %s", add.Val())
 	}
 
 	add = rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test4",
-		ID:     "test3",
+		ID:     "0-1",
 		Values: map[string]interface{}{
 			"foo": "bar",
 		},
@@ -142,4 +145,38 @@ func TestXAddIdFail(t *testing.T) {
 	}
 
 	fmt.Println(add.Err())
+}
+
+func TestXAddStarSeq(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "test9",
+		ID:     "0-*",
+		Values: map[string]interface{}{
+			"foo": "bar",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	if add.Val() != "0-1" {
+		t.Fatalf("expected 0-1, got %s", add.Val())
+	}
+
+	add = rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "test9",
+		ID:     "0-*",
+		Values: map[string]interface{}{
+			"foo": "bar",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	if add.Val() != "0-2" {
+		t.Fatalf("expected 0-2, got %s", add.Val())
+	}
 }

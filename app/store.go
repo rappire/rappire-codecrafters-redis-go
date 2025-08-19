@@ -2,102 +2,19 @@ package main
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/codecrafters-io/redis-starter-go/app/list"
-
 	"sync"
 	"time"
+
+	"github.com/codecrafters-io/redis-starter-go/app/entity"
 )
 
 type Store struct {
-	items map[string]Entity
+	items map[string]entity.Entity
 	mu    sync.RWMutex
 }
 
-type Entity interface {
-	Expired() bool
-}
-
-type StreamEntry struct {
-	Id     string
-	Fields map[string]string
-}
-
-type StreamEntity struct {
-	Entries []StreamEntry
-	LastMs  int64
-	Seq     int64
-}
-
-func (s StreamEntity) Expired() bool {
-	return false
-}
-
-func (s StreamEntity) nextId() string {
-	now := time.Now().UnixMilli()
-	if now == s.LastMs {
-		s.Seq++
-	} else {
-		s.LastMs = now
-		s.Seq = 0
-	}
-	return fmt.Sprintf("%d-%d", s.LastMs, s.Seq)
-}
-
-func (s StreamEntity) validId(id string) error {
-	idSplit := strings.Split(id, "-")
-
-	if len(idSplit) != 2 {
-		return fmt.Errorf("invalid id")
-	}
-
-	if idSplit[0] <= "0" && idSplit[1] <= "0" {
-		return fmt.Errorf("ERR The ID specified in XADD must be greater than 0-0")
-	}
-
-	if len(s.Entries) == 0 {
-		return nil
-	}
-	lastId := s.Entries[len(s.Entries)-1].Id
-
-	if lastId >= id {
-		return fmt.Errorf("ERR The ID specified in XADD is equal or smaller than the target stream top item")
-	}
-	return nil
-}
-
-type ListEntity struct {
-	ValueData *list.QuickList
-	notify    chan struct{}
-}
-
-func (l ListEntity) Expired() bool {
-	return false
-}
-
-func newListEntity() *ListEntity {
-	return &ListEntity{
-		ValueData: list.NewQuickList(),
-		notify:    make(chan struct{}, 1),
-	}
-}
-
-type StringEntity struct {
-	ValueData string
-	Expire    time.Time
-}
-
-func (e StringEntity) Value() string {
-	return e.ValueData
-}
-
-func (e StringEntity) Expired() bool {
-	return !e.Expire.IsZero() && time.Now().After(e.Expire)
-}
-
 func NewStore() *Store {
-	return &Store{items: make(map[string]Entity)}
+	return &Store{items: make(map[string]entity.Entity)}
 }
 
 func (store *Store) Get(key string) (string, bool) {
@@ -115,7 +32,7 @@ func (store *Store) Get(key string) (string, bool) {
 		store.mu.Unlock()
 		return "", false
 	}
-	stringEntity, ok := entry.(*StringEntity)
+	stringEntity, ok := entry.(*entity.StringEntity)
 	if !ok {
 		return "", false
 	}
@@ -125,15 +42,15 @@ func (store *Store) Get(key string) (string, bool) {
 func (store *Store) Set(key, value string, expire time.Time) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	entry := &StringEntity{ValueData: value, Expire: expire}
+	entry := &entity.StringEntity{ValueData: value, Expire: expire}
 	store.items[key] = entry
 }
 
-func (store *Store) ensureList(key string) *ListEntity {
-	if e, ok := store.items[key].(*ListEntity); ok {
+func (store *Store) ensureList(key string) *entity.ListEntity {
+	if e, ok := store.items[key].(*entity.ListEntity); ok {
 		return e
 	}
-	le := newListEntity()
+	le := entity.NewListEntity()
 	store.items[key] = le
 	return le
 }
@@ -148,7 +65,7 @@ func (store *Store) RPush(key string, value [][]byte) (int, bool) {
 
 	if wasEmpty && n > 0 {
 		select {
-		case listEntity.notify <- struct{}{}:
+		case listEntity.Notify() <- struct{}{}:
 		default:
 		}
 	}
@@ -166,7 +83,7 @@ func (store *Store) LPush(key string, value [][]byte) (int, bool) {
 
 	if wasEmpty && n > 0 {
 		select {
-		case listEntity.notify <- struct{}{}:
+		case listEntity.Notify() <- struct{}{}:
 		default:
 		}
 	}
@@ -183,7 +100,7 @@ func (store *Store) LRange(key string, startPos int, endPos int) ([][]byte, bool
 		return [][]byte{}, true
 	}
 
-	listEntity, ok := store.items[key].(*ListEntity)
+	listEntity, ok := store.items[key].(*entity.ListEntity)
 	if !ok {
 		return nil, false
 	}
@@ -199,7 +116,7 @@ func (store *Store) LLen(key string) (int, bool) {
 		return 0, true
 	}
 
-	listEntity, ok := store.items[key].(*ListEntity)
+	listEntity, ok := store.items[key].(*entity.ListEntity)
 	if !ok {
 		return 0, false
 	}
@@ -216,7 +133,7 @@ func (store *Store) LPop(key string, count int) ([][]byte, bool) {
 		return nil, true
 	}
 
-	listEntity, ok := store.items[key].(*ListEntity)
+	listEntity, ok := store.items[key].(*entity.ListEntity)
 	if !ok {
 		return nil, false
 	}
@@ -228,10 +145,10 @@ func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
 	store.mu.Lock()
 
 	if store.items[key] == nil {
-		store.items[key] = newListEntity()
+		store.items[key] = entity.NewListEntity()
 	}
 
-	listEntity, ok := store.items[key].(*ListEntity)
+	listEntity, ok := store.items[key].(*entity.ListEntity)
 	if !ok {
 		return []byte{}, false
 	}
@@ -244,7 +161,7 @@ func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
 		}
 		return val[0], true
 	}
-	notify := listEntity.notify
+	notify := listEntity.Notify()
 	store.mu.Unlock()
 
 	if timeOut > 0 {
@@ -260,7 +177,7 @@ func (store *Store) BLPop(key string, timeOut time.Duration) ([]byte, bool) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
-	listEntity, ok = store.items[key].(*ListEntity)
+	listEntity, ok = store.items[key].(*entity.ListEntity)
 	if !ok {
 		return nil, true
 	}
@@ -276,29 +193,29 @@ func (store *Store) Type(key string) string {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 
-	entity := store.items[key]
-	if entity == nil {
+	entry := store.items[key]
+	if entry == nil {
 		return "none"
 	}
 
-	switch entity.(type) {
-	case *StringEntity:
+	switch entry.(type) {
+	case *entity.StringEntity:
 		return "string"
-	case *ListEntity:
+	case *entity.ListEntity:
 		return "list"
-	case *StreamEntity:
+	case *entity.StreamEntity:
 		return "stream"
 	default:
 		return "none"
 	}
 }
 
-func (store *Store) ensureStream(key string) *StreamEntity {
-	if streamEntity, ok := store.items[key].(*StreamEntity); ok {
+func (store *Store) ensureStream(key string) *entity.StreamEntity {
+	if streamEntity, ok := store.items[key].(*entity.StreamEntity); ok {
 		return streamEntity
 	}
 
-	streamEntity := &StreamEntity{}
+	streamEntity := entity.NewStreamEntity()
 	store.items[key] = streamEntity
 	return streamEntity
 }
@@ -309,17 +226,15 @@ func (store *Store) XAdd(key string, id string, fields map[string]string) (strin
 
 	streamEntity := store.ensureStream(key)
 
-	if id == "*" {
-		id = streamEntity.nextId()
-	}
+	fmt.Println(streamEntity)
+	generateId, err := streamEntity.GenerateId(id)
 
-	err := streamEntity.validId(id)
 	if err != nil {
 		return "", err
 	}
 
-	entry := StreamEntry{Id: id, Fields: fields}
+	entry := entity.StreamEntry{Id: generateId, Fields: fields}
 	streamEntity.Entries = append(streamEntity.Entries, entry)
 
-	return id, nil
+	return fmt.Sprintf("%d-%d", generateId.Millis, generateId.Seq), nil
 }
