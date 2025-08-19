@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/codecrafters-io/redis-starter-go/app/entity"
 )
 
 type CommandEvent struct {
@@ -217,7 +219,7 @@ func NewHandler(store *Store) map[string]Handler {
 
 			key := string(e.Args[0])
 			id := string(e.Args[1])
-			fields := make(map[string]string)
+			fields := make([]entity.FieldValue, 0, len(e.Args[2:])/2)
 
 			count := len(e.Args[2:])
 			if count%2 != 0 {
@@ -226,7 +228,10 @@ func NewHandler(store *Store) map[string]Handler {
 			}
 
 			for i := range count / 2 {
-				fields[string(e.Args[2+i*2])] = string(e.Args[3+i*2])
+				fields = append(fields, entity.FieldValue{
+					Key:   string(e.Args[i]),
+					Value: string(e.Args[i+1]),
+				})
 			}
 			id, err := store.XAdd(key, id, fields)
 			if err != nil {
@@ -234,6 +239,35 @@ func NewHandler(store *Store) map[string]Handler {
 				return
 			}
 			e.Ctx.Write(AppendBulkString([]byte{}, []byte(id)))
+		},
+		"XRANGE": func(e CommandEvent) {
+			if len(e.Args) != 3 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'XRANGE' command"))
+				return
+			}
+			key := string(e.Args[0])
+			start := string(e.Args[1])
+			end := string(e.Args[2])
+			entries, err := store.XRange(key, start, end)
+			if err != nil {
+				e.Ctx.Write(AppendError([]byte{}, err.Error()))
+				return
+			}
+
+			cmd := AppendArray([]byte{}, len(entries))
+			for _, entry := range entries {
+				entryArray := AppendArray([]byte{}, 1+len(entry.Fields)*2)
+				entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
+
+				for _, f := range entry.Fields {
+					entryArray = AppendBulkString(entryArray, []byte(f.Key))
+					entryArray = AppendBulkString(entryArray, []byte(f.Value))
+				}
+
+				cmd = append(cmd, entryArray...)
+			}
+
+			e.Ctx.Write(cmd)
 		},
 	}
 }

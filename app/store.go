@@ -220,20 +220,39 @@ func (store *Store) ensureStream(key string) *entity.StreamEntity {
 	return streamEntity
 }
 
-func (store *Store) XAdd(key string, id string, fields map[string]string) (string, error) {
+func (store *Store) XAdd(key string, id string, fields []entity.FieldValue) (string, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
 	streamEntity := store.ensureStream(key)
-
 	generateId, err := streamEntity.GenerateId(id)
-
 	if err != nil {
 		return "", err
 	}
-
 	entry := entity.StreamEntry{Id: generateId, Fields: fields}
 	streamEntity.Entries = append(streamEntity.Entries, entry)
-
 	return fmt.Sprintf("%d-%d", generateId.Millis, generateId.Seq), nil
+}
+
+func (store *Store) XRange(key string, start string, end string) ([]entity.StreamEntry, error) {
+	store.mu.RLock()
+	streamEntity := store.ensureStream(key)
+	store.mu.RUnlock()
+
+	startId, err := entity.ParseBound(start)
+	if err != nil {
+		return nil, err
+	}
+	endId, err := entity.ParseBound(end)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []entity.StreamEntry
+	for _, e := range streamEntity.Entries {
+		if !e.Id.Less(startId) && !endId.Less(e.Id) {
+			result = append(result, e)
+		}
+	}
+	return result, nil
 }

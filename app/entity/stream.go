@@ -2,6 +2,7 @@ package entity
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -12,9 +13,21 @@ type StreamId struct {
 	Seq    int
 }
 
+func (s *StreamId) Less(id *StreamId) bool {
+	if s.Millis < id.Millis {
+		return true
+	} else if s.Millis > id.Millis {
+		return false
+	} else {
+		return s.Seq < id.Seq
+	}
+}
+
+type FieldValue struct{ Key, Value string }
+
 type StreamEntry struct {
 	Id     *StreamId
-	Fields map[string]string
+	Fields []FieldValue
 }
 
 type StreamEntity struct {
@@ -105,4 +118,24 @@ func (s *StreamEntity) GenerateId(requestedId string) (*StreamId, error) {
 	s.LastMillis = id.Millis
 	s.LastSeq = id.Seq
 	return id, nil
+}
+
+var (
+	MinID = StreamId{Millis: 0, Seq: 0}                           // "-"
+	MaxID = StreamId{Millis: math.MaxUint64, Seq: math.MaxUint64} // "+"
+)
+
+func ParseBound(id string) (*StreamId, error) {
+	switch id {
+	case "-":
+		return &MinID, nil
+	case "+":
+		return &MaxID, nil
+	default:
+		parsedId, err := parseStreamId(id)
+		if err != nil {
+			return nil, err
+		}
+		return parsedId, nil
+	}
 }
