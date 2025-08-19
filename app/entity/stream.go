@@ -72,7 +72,7 @@ func (s *StreamEntity) GenerateId(requestedId string) (*StreamId, error) {
 
 	if id.Millis == -1 {
 		id.Millis = int(time.Now().UnixMilli())
-		id.Seq = s.LastSeq + 1
+		id.Seq = 0
 		s.LastMillis = id.Millis
 		s.LastSeq = id.Seq
 		return id, nil
