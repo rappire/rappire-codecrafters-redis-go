@@ -279,5 +279,25 @@ func TestXRead(t *testing.T) {
 	})
 
 	fmt.Println(read.Val())
+}
 
+func TestXRead2(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "banana",
+		ID:     "0-1",
+		Values: map[string]interface{}{
+			"temperature": "93",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	read := rdb.XRead(ctx, &redis.XReadArgs{
+		Streams: []string{"banana"},
+		ID:      "0-0",
+	})
+
+	fmt.Println(read.Val())
 }

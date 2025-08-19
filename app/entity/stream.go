@@ -83,6 +83,25 @@ func parseStreamId(id string) (*StreamId, error) {
 	return &StreamId{Millis: t, Seq: sq}, nil
 }
 
+func parseBound(id string) (*StreamId, error) {
+	parts := strings.Split(id, "-")
+	if len(parts) != 2 {
+		return &StreamId{}, fmt.Errorf("invalid id")
+	}
+
+	t, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return &StreamId{}, err
+	}
+
+	sq, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return &StreamId{}, err
+	}
+
+	return &StreamId{Millis: t, Seq: sq}, nil
+}
+
 func (s *StreamEntity) GenerateId(requestedId string) (*StreamId, error) {
 	id, err := parseStreamId(requestedId)
 
@@ -142,7 +161,8 @@ func ParseBound(id string) (*StreamId, error) {
 	case "+":
 		return &MaxID, nil
 	default:
-		parsedId, err := parseStreamId(id)
+
+		parsedId, err := parseBound(id)
 		if err != nil {
 			return nil, err
 		}
