@@ -226,7 +226,6 @@ func (store *Store) XAdd(key string, id string, fields map[string]string) (strin
 
 	streamEntity := store.ensureStream(key)
 
-	fmt.Println(streamEntity)
 	generateId, err := streamEntity.GenerateId(id)
 
 	if err != nil {

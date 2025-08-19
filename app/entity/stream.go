@@ -95,7 +95,9 @@ func (s *StreamEntity) GenerateId(requestedId string) (*StreamId, error) {
 		return id, nil
 	}
 
-	if id.Millis <= s.LastMillis && id.Seq <= s.LastSeq {
+	if id.Millis < s.LastMillis {
+		return nil, fmt.Errorf("ERR The ID specified in XADD is equal or smaller than the target stream top item")
+	} else if id.Millis == s.LastMillis && id.Seq <= s.LastSeq {
 		return nil, fmt.Errorf("ERR The ID specified in XADD is equal or smaller than the target stream top item")
 	}
 
