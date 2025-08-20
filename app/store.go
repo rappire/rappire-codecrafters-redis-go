@@ -275,25 +275,27 @@ func (store *Store) XRange(key, start, end string) ([]entity.StreamEntry, error)
 // TODO 포인터로 최적화 필요
 func (store *Store) XRead(timeout time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
 	result := make([][]entity.StreamEntry, len(ids))
+	streamIds := make([]*entity.StreamId, len(ids))
+	store.mu.RLock()
+	for _, key := range keys {
+		stream := store.ensureStream(key)
+		for j, id := range ids {
+			bound, err := stream.ParseBound(id)
+			if err != nil {
+				return result, err
+			}
+			streamIds[j] = bound
+		}
+	}
+	store.mu.RUnlock()
 
 	checkStreams := func() ([][]entity.StreamEntry, bool) {
 		store.mu.RLock()
 		defer store.mu.RUnlock()
-
 		hasData := false
 		tmpResults := make([][]entity.StreamEntry, len(keys))
 		for i, key := range keys {
 			stream := store.ensureStream(key)
-			streamIds := make([]*entity.StreamId, len(ids))
-
-			for i, id := range ids {
-				bound, err := stream.ParseBound(id)
-				if err != nil {
-					return result, true
-				}
-				streamIds[i] = bound
-			}
-
 			for _, e := range stream.Entries {
 				if e.Id != nil && !e.Id.Under(streamIds[i]) {
 					tmpResults[i] = append(tmpResults[i], e)
@@ -342,13 +344,13 @@ func (store *Store) XRead(timeout time.Duration, keys []string, ids []string) ([
 		}
 	} else {
 		fmt.Println("LIMIT")
-		fmt.Println(merged)
 		<-merged
+		fmt.Println("MERGED!")
 	}
 
 	streams, _ := checkStreams()
+	fmt.Println("END!!")
 	fmt.Println(timeout)
-	fmt.Println(time.Now())
 	fmt.Println(streams)
 	return streams, nil
 
