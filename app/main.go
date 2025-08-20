@@ -18,10 +18,12 @@ type ConnContext struct {
 	mu   sync.Mutex
 }
 
-func (connContext *ConnContext) Write(message []byte) (n int, err error) {
+// TODO 임시로 무시
+func (connContext *ConnContext) Write(message []byte) int {
 	connContext.mu.Lock()
 	defer connContext.mu.Unlock()
-	return connContext.Conn.Write(message)
+	n, _ := connContext.Conn.Write(message)
+	return n
 }
 
 func main() {

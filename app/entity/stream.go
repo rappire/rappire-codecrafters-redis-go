@@ -44,6 +44,7 @@ type StreamEntity struct {
 	Entries    []StreamEntry
 	LastMillis int
 	LastSeq    int
+	notify     chan struct{}
 }
 
 func (s *StreamEntity) Expired() bool {
@@ -51,7 +52,11 @@ func (s *StreamEntity) Expired() bool {
 }
 
 func NewStreamEntity() *StreamEntity {
-	return &StreamEntity{LastMillis: 0, LastSeq: 0, Entries: make([]StreamEntry, 0)}
+	return &StreamEntity{LastMillis: 0, LastSeq: 0, Entries: make([]StreamEntry, 0), notify: make(chan struct{}, 1)}
+}
+
+func (s *StreamEntity) Notify() chan struct{} {
+	return s.notify
 }
 
 func parseStreamId(id string) (*StreamId, error) {

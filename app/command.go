@@ -310,28 +310,29 @@ func NewHandler(store *Store) map[string]Handler {
 			for k := 0; k < numKeys; k++ {
 				ids[k] = string(e.Args[i+k+numKeys])
 			}
-
-			entries, err := store.XRead(blockDur, keys, ids)
-			if err != nil {
-				e.Ctx.Write(AppendError([]byte{}, err.Error()))
-			}
-			cmd := AppendArray([]byte{}, numKeys)
-			for j, key := range keys {
-				cmd = AppendArray(cmd, 2)
-				cmd = AppendBulkString(cmd, []byte(key))
-				cmd = AppendArray(cmd, len(entries[j]))
-				for _, entry := range entries[j] {
-					entryArray := AppendArray([]byte{}, 2)
-					entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
-					entryArray = AppendArray(entryArray, len(entry.Fields)*2)
-					for _, f := range entry.Fields {
-						entryArray = AppendBulkString(entryArray, []byte(f.Key))
-						entryArray = AppendBulkString(entryArray, []byte(f.Value))
-					}
-					cmd = append(cmd, entryArray...)
+			go func() {
+				entries, err := store.XRead(blockDur, keys, ids)
+				if err != nil {
+					e.Ctx.Write(AppendError([]byte{}, err.Error()))
 				}
-			}
-			e.Ctx.Write(cmd)
+				cmd := AppendArray([]byte{}, numKeys)
+				for j, key := range keys {
+					cmd = AppendArray(cmd, 2)
+					cmd = AppendBulkString(cmd, []byte(key))
+					cmd = AppendArray(cmd, len(entries[j]))
+					for _, entry := range entries[j] {
+						entryArray := AppendArray([]byte{}, 2)
+						entryArray = AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
+						entryArray = AppendArray(entryArray, len(entry.Fields)*2)
+						for _, f := range entry.Fields {
+							entryArray = AppendBulkString(entryArray, []byte(f.Key))
+							entryArray = AppendBulkString(entryArray, []byte(f.Value))
+						}
+						cmd = append(cmd, entryArray...)
+					}
+				}
+				e.Ctx.Write(cmd)
+			}()
 		},
 	}
 }

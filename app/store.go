@@ -230,6 +230,14 @@ func (store *Store) XAdd(key string, id string, fields []entity.FieldValue) (str
 		return "", err
 	}
 	entry := entity.StreamEntry{Id: generateId, Fields: fields}
+
+	if len(streamEntity.Entries) == 0 {
+		select {
+		case streamEntity.Notify() <- struct{}{}:
+		default:
+		}
+	}
+
 	streamEntity.Entries = append(streamEntity.Entries, entry)
 	return fmt.Sprintf("%d-%d", generateId.Millis, generateId.Seq), nil
 }
@@ -261,7 +269,7 @@ func (store *Store) XRange(key string, start string, end string) ([]entity.Strea
 }
 
 // TODO 포인터로 최적화 필요
-func (store *Store) XRead(dur time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
+func (store *Store) XRead(timeOut time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
 	streamIds := make([]*entity.StreamId, len(ids))
 	result := make([][]entity.StreamEntry, len(ids))
 
@@ -276,6 +284,21 @@ func (store *Store) XRead(dur time.Duration, keys []string, ids []string) ([][]e
 	store.mu.RLock()
 	for i, key := range keys {
 		stream := store.ensureStream(key)
+		if len(stream.Entries) == 0 {
+			store.mu.RUnlock()
+			notify := stream.Notify()
+			if timeOut > 0 {
+				select {
+				case <-notify:
+				case <-time.After(timeOut):
+					return nil, nil
+				}
+			} else {
+				<-notify
+			}
+			store.mu.RLock()
+		}
+
 		result[i] = []entity.StreamEntry{}
 		for _, e := range stream.Entries {
 			if e.Id == nil {
