@@ -159,14 +159,19 @@ var (
 	MaxID = StreamId{Millis: math.MaxInt, Seq: math.MaxInt} // "+"
 )
 
-func ParseBound(id string) (*StreamId, error) {
+func (s *StreamEntity) ParseBound(id string) (*StreamId, error) {
 	switch id {
 	case "-":
 		return &MinID, nil
 	case "+":
 		return &MaxID, nil
+	case "$":
+		lastEntry := &s.Entries[len(s.Entries)-1]
+		if lastEntry != nil {
+			return lastEntry.Id, nil
+		}
+		return &MinID, nil
 	default:
-
 		parsedId, err := parseBound(id)
 		if err != nil {
 			return nil, err

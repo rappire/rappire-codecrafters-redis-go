@@ -253,17 +253,19 @@ func filterEntries(entries []entity.StreamEntry, startId, endId *entity.StreamId
 }
 
 func (store *Store) XRange(key, start, end string) ([]entity.StreamEntry, error) {
-	startId, err := entity.ParseBound(start)
+
+	store.mu.RLock()
+	streamEntity := store.ensureStream(key)
+
+	startId, err := streamEntity.ParseBound(start)
 	if err != nil {
 		return nil, err
 	}
-	endId, err := entity.ParseBound(end)
+	endId, err := streamEntity.ParseBound(end)
 	if err != nil {
 		return nil, err
 	}
 
-	store.mu.RLock()
-	streamEntity := store.ensureStream(key)
 	entries := append([]entity.StreamEntry(nil), streamEntity.Entries...) // 복사
 	store.mu.RUnlock()
 
@@ -272,16 +274,7 @@ func (store *Store) XRange(key, start, end string) ([]entity.StreamEntry, error)
 
 // TODO 포인터로 최적화 필요
 func (store *Store) XRead(timeout time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
-	streamIds := make([]*entity.StreamId, len(ids))
 	result := make([][]entity.StreamEntry, len(ids))
-
-	for i, id := range ids {
-		bound, err := entity.ParseBound(id)
-		if err != nil {
-			return result, nil
-		}
-		streamIds[i] = bound
-	}
 
 	checkStreams := func() ([][]entity.StreamEntry, bool) {
 		store.mu.RLock()
@@ -291,6 +284,16 @@ func (store *Store) XRead(timeout time.Duration, keys []string, ids []string) ([
 		tmpResults := make([][]entity.StreamEntry, len(keys))
 		for i, key := range keys {
 			stream := store.ensureStream(key)
+			streamIds := make([]*entity.StreamId, len(ids))
+
+			for i, id := range ids {
+				bound, err := stream.ParseBound(id)
+				if err != nil {
+					return result, true
+				}
+				streamIds[i] = bound
+			}
+
 			for _, e := range stream.Entries {
 				if e.Id != nil && !e.Id.Under(streamIds[i]) {
 					tmpResults[i] = append(tmpResults[i], e)
