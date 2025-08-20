@@ -315,6 +315,11 @@ func NewHandler(store *Store) map[string]Handler {
 				if err != nil {
 					e.Ctx.Write(AppendError([]byte{}, err.Error()))
 				}
+
+				if len(entries) == 0 {
+					e.Ctx.Write([]byte("$-1\r\n"))
+					return
+				}
 				cmd := AppendArray([]byte{}, numKeys)
 				for j, key := range keys {
 					cmd = AppendArray(cmd, 2)
