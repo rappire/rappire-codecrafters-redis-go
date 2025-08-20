@@ -298,6 +298,7 @@ func (store *Store) XRead(timeOut time.Duration, keys []string, ids []string) ([
 			}
 			store.mu.RLock()
 		}
+		stream = store.ensureStream(key)
 
 		result[i] = []entity.StreamEntry{}
 		for _, e := range stream.Entries {
