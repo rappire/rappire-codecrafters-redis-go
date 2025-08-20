@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -300,4 +301,41 @@ func TestXRead2(t *testing.T) {
 	})
 
 	fmt.Println(read.Val())
+}
+
+func TestXReadBlock(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "block",
+		ID:     "0-1",
+		Values: map[string]interface{}{
+			"temperature": "93",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	go func() {
+		read := rdb.XRead(ctx, &redis.XReadArgs{
+			Streams: []string{"block"},
+			ID:      "0-1",
+			Block:   0,
+		})
+		fmt.Println(read.Val())
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+
+	add = rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "block",
+		ID:     "0-2",
+		Values: map[string]interface{}{
+			"temperature": "93",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
 }

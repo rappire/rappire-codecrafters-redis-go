@@ -214,7 +214,6 @@ func (store *Store) ensureStream(key string) *entity.StreamEntity {
 	if streamEntity, ok := store.items[key].(*entity.StreamEntity); ok {
 		return streamEntity
 	}
-
 	streamEntity := entity.NewStreamEntity()
 	store.items[key] = streamEntity
 	return streamEntity
@@ -230,23 +229,30 @@ func (store *Store) XAdd(key string, id string, fields []entity.FieldValue) (str
 		return "", err
 	}
 	entry := entity.StreamEntry{Id: generateId, Fields: fields}
+	streamEntity.Entries = append(streamEntity.Entries, entry)
 
-	if len(streamEntity.Entries) == 0 {
-		select {
-		case streamEntity.Notify() <- struct{}{}:
-		default:
-		}
+	select {
+	case streamEntity.Notify() <- struct{}{}:
+	default:
 	}
 
-	streamEntity.Entries = append(streamEntity.Entries, entry)
 	return fmt.Sprintf("%d-%d", generateId.Millis, generateId.Seq), nil
 }
 
-func (store *Store) XRange(key string, start string, end string) ([]entity.StreamEntry, error) {
-	store.mu.RLock()
-	streamEntity := store.ensureStream(key)
-	store.mu.RUnlock()
+func filterEntries(entries []entity.StreamEntry, startId, endId *entity.StreamId) []entity.StreamEntry {
+	var result []entity.StreamEntry
+	for _, e := range entries {
+		if e.Id == nil {
+			continue
+		}
+		if !e.Id.Less(startId) && !endId.Less(e.Id) {
+			result = append(result, e)
+		}
+	}
+	return result
+}
 
+func (store *Store) XRange(key, start, end string) ([]entity.StreamEntry, error) {
 	startId, err := entity.ParseBound(start)
 	if err != nil {
 		return nil, err
@@ -256,20 +262,16 @@ func (store *Store) XRange(key string, start string, end string) ([]entity.Strea
 		return nil, err
 	}
 
-	var result []entity.StreamEntry
-	for _, e := range streamEntity.Entries {
-		if e.Id == nil {
-			continue
-		}
-		if !e.Id.Less(startId) && !endId.Less(e.Id) {
-			result = append(result, e)
-		}
-	}
-	return result, nil
+	store.mu.RLock()
+	streamEntity := store.ensureStream(key)
+	entries := append([]entity.StreamEntry(nil), streamEntity.Entries...) // 복사
+	store.mu.RUnlock()
+
+	return filterEntries(entries, startId, endId), nil
 }
 
 // TODO 포인터로 최적화 필요
-func (store *Store) XRead(timeOut time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
+func (store *Store) XRead(timeout time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
 	streamIds := make([]*entity.StreamId, len(ids))
 	result := make([][]entity.StreamEntry, len(ids))
 
@@ -281,37 +283,70 @@ func (store *Store) XRead(timeOut time.Duration, keys []string, ids []string) ([
 		streamIds[i] = bound
 	}
 
-	store.mu.RLock()
+	checkStreams := func() ([][]entity.StreamEntry, bool) {
+		store.mu.RLock()
+		defer store.mu.RUnlock()
+
+		hasData := false
+		tmpResults := make([][]entity.StreamEntry, len(keys))
+		for i, key := range keys {
+			stream := store.ensureStream(key)
+			for _, e := range stream.Entries {
+				if e.Id != nil && !e.Id.Under(streamIds[i]) {
+					tmpResults[i] = append(tmpResults[i], e)
+					hasData = true
+				}
+			}
+		}
+		return tmpResults, hasData
+	}
+
+	results, hasData := checkStreams()
+	if hasData {
+		return results, nil
+	}
+
+	notifies := make([]<-chan struct{}, len(keys))
 	for i, key := range keys {
 		stream := store.ensureStream(key)
-		if len(stream.Entries) == 0 {
-			store.mu.RUnlock()
-			notify := stream.Notify()
-			if timeOut > 0 {
-				select {
-				case <-notify:
-				case <-time.After(timeOut):
-					return nil, nil
-				}
-			} else {
-				<-notify
-			}
-			store.mu.RLock()
-		}
-		stream = store.ensureStream(key)
-
-		result[i] = []entity.StreamEntry{}
-		for _, e := range stream.Entries {
-			if e.Id == nil {
-				continue
-			}
-			if e.Id.Under(streamIds[i]) {
-				continue
-			}
-			result[i] = append(result[i], e)
-		}
+		notifies[i] = stream.Notify()
 	}
-	store.mu.RUnlock()
 
-	return result, nil
+	merged := make(chan struct{})
+	var once sync.Once
+	for _, ch := range notifies {
+		// 기존 신호 제거
+		for {
+			select {
+			case <-ch:
+			default:
+				goto Done
+			}
+		}
+	Done:
+		// 고루틴 생성
+		go func(c <-chan struct{}) {
+			<-c
+			once.Do(func() { close(merged) })
+		}(ch)
+	}
+
+	if timeout > 0 {
+		select {
+		case <-merged:
+		case <-time.After(timeout):
+			return nil, nil
+		}
+	} else {
+		fmt.Println("LIMIT")
+		fmt.Println(merged)
+		<-merged
+	}
+
+	streams, _ := checkStreams()
+	fmt.Println(timeout)
+	fmt.Println(time.Now())
+	fmt.Println(streams)
+	return streams, nil
+
 }
