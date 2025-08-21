@@ -339,5 +339,19 @@ func NewHandler(store *Store) map[string]Handler {
 				e.Ctx.Write(cmd)
 			}()
 		},
+		"INCR": func(e CommandEvent) {
+			if len(e.Args) != 1 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'INCR' command"))
+				return
+			}
+			key := string(e.Args[0])
+
+			incr, err := store.Incr(key)
+			if err != nil {
+				e.Ctx.Write(AppendError([]byte{}, err.Error()))
+				return
+			}
+			e.Ctx.Write(AppendInt([]byte{}, incr))
+		},
 	}
 }

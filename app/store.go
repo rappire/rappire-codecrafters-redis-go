@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -272,7 +273,7 @@ func (store *Store) XRange(key, start, end string) ([]entity.StreamEntry, error)
 	return filterEntries(entries, startId, endId), nil
 }
 
-// TODO 포인터로 최적화 필요
+// TODO 최적화 필요
 func (store *Store) XRead(timeout time.Duration, keys []string, ids []string) ([][]entity.StreamEntry, error) {
 	result := make([][]entity.StreamEntry, len(ids))
 	streamIds := make([]*entity.StreamId, len(ids))
@@ -353,5 +354,29 @@ func (store *Store) XRead(timeout time.Duration, keys []string, ids []string) ([
 	fmt.Println(timeout)
 	fmt.Println(streams)
 	return streams, nil
+}
 
+func (store *Store) Incr(key string) (int, error) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	if store.items[key] == nil {
+		store.items[key] = &entity.StringEntity{ValueData: "0"}
+	}
+
+	stringEntity, ok := store.items[key].(*entity.StringEntity)
+
+	if !ok {
+		return 0, fmt.Errorf("value is not an integer or out of range")
+	}
+
+	value := stringEntity.Value()
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("value is not an integer or out of range")
+	}
+	intValue++
+
+	stringEntity.ValueData = strconv.Itoa(intValue)
+	return intValue, nil
 }
