@@ -367,13 +367,13 @@ func (store *Store) Incr(key string) (int, error) {
 	stringEntity, ok := store.items[key].(*entity.StringEntity)
 
 	if !ok {
-		return 0, fmt.Errorf("value is not an integer or out of range")
+		return 0, fmt.Errorf("ERR value is not an integer or out of range")
 	}
 
 	value := stringEntity.Value()
 	intValue, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, fmt.Errorf("value is not an integer or out of range")
+		return 0, fmt.Errorf("ERR value is not an integer or out of range")
 	}
 	intValue++
 
