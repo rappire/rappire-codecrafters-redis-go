@@ -383,7 +383,7 @@ func CommandHandler(store *Store) map[string]Handler {
 
 			for _, cmd := range e.Ctx.tx.CmdQueue {
 				if handler, ok := handlers[cmd.Name]; ok {
-					handler(e)
+					handler(CommandEvent{Command: cmd.Name, Args: cmd.Args, Ctx: e.Ctx})
 				} else {
 					e.Ctx.Write(AppendError(nil, "ERR unknown command '"+cmd.Name+"'"))
 				}
