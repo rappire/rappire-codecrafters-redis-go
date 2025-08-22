@@ -363,7 +363,7 @@ func CommandHandler(store *Store) map[string]Handler {
 			}
 
 			e.Ctx.tx.InTransaction = true
-
+			e.Ctx.tx.CmdQueue = make([]Cmd, 0)
 			e.Ctx.Write(AppendString([]byte{}, "OK"))
 		},
 		"EXEC": func(e CommandEvent) {
@@ -388,6 +388,23 @@ func CommandHandler(store *Store) map[string]Handler {
 					e.Ctx.Write(AppendError(nil, "ERR unknown command '"+cmd.Name+"'"))
 				}
 			}
+
+			e.Ctx.tx.CmdQueue = make([]Cmd, 0)
+		},
+		"DISCARD": func(e CommandEvent) {
+			if len(e.Args) != 0 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'DISCARD' command"))
+				return
+			}
+
+			if !e.Ctx.tx.IsInTransaction() {
+				e.Ctx.Write(AppendError([]byte{}, "ERR DISCARD without MULTI"))
+				return
+			}
+
+			e.Ctx.tx.InTransaction = false
+			e.Ctx.tx.CmdQueue = make([]Cmd, 0)
+			e.Ctx.Write(AppendString([]byte{}, "OK"))
 		},
 	}
 }
