@@ -377,10 +377,9 @@ func CommandHandler(store *Store) map[string]Handler {
 				return
 			}
 
-			if len(e.Ctx.tx.CmdQueue) == 0 {
-				e.Ctx.Write(AppendArray([]byte{}, 0))
-				return
-			}
+			e.Ctx.tx.InTransaction = false
+
+			e.Ctx.Write(AppendArray([]byte{}, len(e.Ctx.tx.CmdQueue)))
 
 			handlers := CommandHandler(store)
 
