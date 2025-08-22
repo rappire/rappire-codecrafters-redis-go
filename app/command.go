@@ -17,8 +17,7 @@ type CommandEvent struct {
 
 type Handler func(CommandEvent)
 
-func NewHandler(store *Store) map[string]Handler {
-
+func CommandHandler(store *Store) map[string]Handler {
 	return map[string]Handler{
 		"PING": func(e CommandEvent) {
 			e.Ctx.Write(AppendString([]byte{}, "PONG"))
@@ -352,6 +351,41 @@ func NewHandler(store *Store) map[string]Handler {
 				return
 			}
 			e.Ctx.Write(AppendInt([]byte{}, incr))
+		},
+		"MULTI": func(e CommandEvent) {
+			if len(e.Args) != 0 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'MULTI' command"))
+				return
+			}
+
+			if e.Ctx.tx.IsInTransaction() {
+				return
+			}
+
+			e.Ctx.tx.InTransaction = true
+
+			e.Ctx.Write(AppendString([]byte{}, "OK"))
+		},
+		"EXEC": func(e CommandEvent) {
+			if len(e.Args) != 0 {
+				e.Ctx.Write(AppendError([]byte{}, "ERR wrong number of arguments for 'EXEC' command"))
+				return
+			}
+
+			if !e.Ctx.tx.IsInTransaction() {
+				e.Ctx.Write(AppendError([]byte{}, "ERR EXEC without MULTI"))
+				return
+			}
+
+			handlers := CommandHandler(store)
+
+			for _, cmd := range e.Ctx.tx.CmdQueue {
+				if handler, ok := handlers[cmd.Name]; ok {
+					handler(e)
+				} else {
+					e.Ctx.Write(AppendError(nil, "ERR unknown command '"+cmd.Name+"'"))
+				}
+			}
 		},
 	}
 }
