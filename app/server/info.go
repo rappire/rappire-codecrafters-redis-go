@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -55,6 +56,10 @@ func NewServerInfo(masterServerInfo string) *ServerInfo {
 		masterReplId = createMasterReplId()
 	} else {
 		role = "slave"
+		split := strings.Split(masterServerInfo, " ")
+		masterServerIp := split[0]
+		masterServerPort := split[1]
+		masterServerInfo = masterServerIp + ":" + masterServerPort
 	}
 
 	return &ServerInfo{

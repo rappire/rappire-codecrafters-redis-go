@@ -7,7 +7,6 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
@@ -44,7 +43,6 @@ func NewServer(addr string, replicaOf string) (*Server, error) {
 		if _, err := io.WriteString(dial, "*1\r\n$4\r\nPING\r\n"); err != nil {
 			return nil, fmt.Errorf("failed to write message: %v", err)
 		}
-		time.Sleep(3 * time.Second)
 	}
 
 	server := &Server{
