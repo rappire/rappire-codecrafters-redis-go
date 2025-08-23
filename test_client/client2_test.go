@@ -418,7 +418,7 @@ func TestXRead3(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
-	info := rdb.Info(ctx)
+	info := rdb.Info(ctx, "replication")
 	if info.Err() != nil {
 		t.Fatalf("Info failed: %v", info.Err())
 	}

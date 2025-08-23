@@ -209,6 +209,7 @@ func (args *XReadArgs) Validate() error {
 }
 
 type InfoArgs struct {
+	Type string `redis:"type"`
 }
 
 func (args *InfoArgs) Validate() error {
