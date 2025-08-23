@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/codecrafters-io/redis-starter-go/app/types"
 )
 
 func (cm *CommandManger) registerListCommands() {
@@ -16,7 +17,7 @@ func (cm *CommandManger) registerListCommands() {
 }
 
 // handleRPush는 RPUSH 명령어를 처리합니다
-func (cm *CommandManger) handleRPush(e CommandEvent) {
+func (cm *CommandManger) handleRPush(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *RPushArgs) {
 		length, ok := cm.store.RPush(args.Key, args.Values)
 		if ok {
@@ -28,7 +29,7 @@ func (cm *CommandManger) handleRPush(e CommandEvent) {
 }
 
 // handleLPush는 LPUSH 명령어를 처리합니다
-func (cm *CommandManger) handleLPush(e CommandEvent) {
+func (cm *CommandManger) handleLPush(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *LPushArgs) {
 		length, ok := cm.store.LPush(args.Key, args.Values)
 		if ok {
@@ -40,7 +41,7 @@ func (cm *CommandManger) handleLPush(e CommandEvent) {
 }
 
 // handleLRange는 LRANGE 명령어를 처리합니다
-func (cm *CommandManger) handleLRange(e CommandEvent) {
+func (cm *CommandManger) handleLRange(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *LRangeArgs) {
 		values, ok := cm.store.LRange(args.Key, args.Start, args.End)
 		if !ok {
@@ -56,7 +57,7 @@ func (cm *CommandManger) handleLRange(e CommandEvent) {
 	})
 }
 
-func (cm *CommandManger) handleLLen(e CommandEvent) {
+func (cm *CommandManger) handleLLen(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *LLenArgs) {
 		length, ok := cm.store.LLen(args.Key)
 
@@ -69,7 +70,7 @@ func (cm *CommandManger) handleLLen(e CommandEvent) {
 }
 
 // handleLPop은 LPOP 명령어를 처리합니다
-func (cm *CommandManger) handleLPop(e CommandEvent) {
+func (cm *CommandManger) handleLPop(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *LPopArgs) {
 		data, ok := cm.store.LPop(args.Key, args.Count)
 		if !ok {
@@ -94,7 +95,7 @@ func (cm *CommandManger) handleLPop(e CommandEvent) {
 	})
 }
 
-func (cm *CommandManger) handleBLPop(e CommandEvent) {
+func (cm *CommandManger) handleBLPop(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *BLPopArgs) {
 		go func() {
 			value, ok := cm.store.BLPop(args.Key, args.GetTimeoutDuration())

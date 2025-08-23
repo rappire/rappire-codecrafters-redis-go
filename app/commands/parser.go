@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/codecrafters-io/redis-starter-go/app/types"
 )
 
 // ParseResult는 파싱 결과를 나타냅니다
@@ -34,12 +35,12 @@ func ArgumentError(command string) ParseResult {
 
 // Parser는 명령어 파싱을 도와주는 구조체입니다
 type Parser struct {
-	event   CommandEvent
+	event   types.CommandEvent
 	command string
 }
 
 // NewParser는 새로운 Parser를 생성합니다
-func NewParser(event CommandEvent) *Parser {
+func NewParser(event types.CommandEvent) *Parser {
 	return &Parser{
 		event:   event,
 		command: strings.ToUpper(event.Command),

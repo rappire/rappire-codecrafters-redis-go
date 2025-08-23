@@ -11,11 +11,12 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/codecrafters-io/redis-starter-go/app/store"
 	"github.com/codecrafters-io/redis-starter-go/app/transaction"
+	"github.com/codecrafters-io/redis-starter-go/app/types"
 )
 
 type Server struct {
 	listener      net.Listener
-	eventChan     chan commands.CommandEvent
+	eventChan     chan types.CommandEvent
 	commandManger *commands.CommandManger
 	shutdownCh    chan struct{}
 	wg            sync.WaitGroup
@@ -28,11 +29,12 @@ func NewServer(addr string) (*Server, error) {
 	}
 
 	newStore := store.NewStore()
+	serverInfo := NewServerInfo()
 
 	server := &Server{
 		listener:      listener,
-		eventChan:     make(chan commands.CommandEvent, 100), // 버퍼링된 채널
-		commandManger: commands.NewCommandManger(newStore),
+		eventChan:     make(chan types.CommandEvent, 100), // 버퍼링된 채널
+		commandManger: commands.NewCommandManger(newStore, serverInfo),
 		shutdownCh:    make(chan struct{}),
 	}
 
@@ -90,7 +92,7 @@ func (s *Server) eventLoop() {
 	}
 }
 
-func (s *Server) processEvent(event commands.CommandEvent) {
+func (s *Server) processEvent(event types.CommandEvent) {
 
 	handler, exists := s.commandManger.GetHandler(event.Command)
 	if !exists {
@@ -102,8 +104,8 @@ func (s *Server) processEvent(event commands.CommandEvent) {
 	wrappedHandler(event)
 }
 
-func (s *Server) wrapHandlerForTransaction(handler commands.Handler, commandName string) commands.Handler {
-	return func(e commands.CommandEvent) {
+func (s *Server) wrapHandlerForTransaction(handler types.Handler, commandName string) types.Handler {
+	return func(e types.CommandEvent) {
 		if transaction.IsTransactionCommand(commandName) {
 			handler(e)
 			return
@@ -124,7 +126,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	defer s.wg.Done()
 	defer conn.Close()
 
-	ctx := commands.NewConnContext(conn, transaction.NewTransaction())
+	ctx := types.NewConnContext(conn, transaction.NewTransaction())
 	reader := bufio.NewReader(conn)
 
 	for {
@@ -159,7 +161,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 			fmt.Println()
 
 			select {
-			case s.eventChan <- commands.CommandEvent{Command: cmd, Args: args, Ctx: ctx}:
+			case s.eventChan <- types.CommandEvent{Command: cmd, Args: args, Ctx: ctx}:
 			case <-s.shutdownCh:
 				return
 			}

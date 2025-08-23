@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/app/types"
 )
 
 type CommandArgs interface {
@@ -12,10 +14,10 @@ type CommandArgs interface {
 }
 
 type ArgParser struct {
-	event CommandEvent
+	event types.CommandEvent
 }
 
-func NewArgParser(event CommandEvent) *ArgParser {
+func NewArgParser(event types.CommandEvent) *ArgParser {
 	return &ArgParser{event: event}
 }
 
@@ -438,7 +440,7 @@ func (ap *ArgParser) parseXReadIDs(fieldValue reflect.Value, argIndex int) (int,
 }
 
 // 통합된 파싱과 실행 함수
-func ParseAndExecute[T CommandArgs](event CommandEvent, handler func(T)) {
+func ParseAndExecute[T CommandArgs](event types.CommandEvent, handler func(T)) {
 	var args T
 
 	argsValue := reflect.New(reflect.TypeOf(args).Elem())

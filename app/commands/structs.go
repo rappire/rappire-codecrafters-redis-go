@@ -207,3 +207,10 @@ func (args *XReadArgs) Validate() error {
 	}
 	return nil
 }
+
+type InfoArgs struct {
+}
+
+func (args *InfoArgs) Validate() error {
+	return nil
+}

@@ -416,3 +416,12 @@ func TestXRead3(t *testing.T) {
 	}
 	time.Sleep(2 * time.Second)
 }
+
+func TestInfo(t *testing.T) {
+	info := rdb.Info(ctx)
+	if info.Err() != nil {
+		t.Fatalf("Info failed: %v", info.Err())
+	}
+
+	fmt.Println(info.Val())
+}

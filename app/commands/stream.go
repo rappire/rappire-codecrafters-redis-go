@@ -6,6 +6,7 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/codecrafters-io/redis-starter-go/app/store/entity"
+	"github.com/codecrafters-io/redis-starter-go/app/types"
 )
 
 // registerStreamCommands는 스트림 관련 명령어들을 등록합니다
@@ -16,7 +17,7 @@ func (cm *CommandManger) registerStreamCommands() {
 }
 
 // handleXAdd는 XADD 명령어를 처리합니다
-func (cm *CommandManger) handleXAdd(e CommandEvent) {
+func (cm *CommandManger) handleXAdd(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *XAddArgs) {
 		fields := make([]entity.FieldValue, 0, len(args.Fields))
 		for key, value := range args.Fields {
@@ -33,7 +34,7 @@ func (cm *CommandManger) handleXAdd(e CommandEvent) {
 }
 
 // handleXRange는 XRANGE 명령어를 처리합니다
-func (cm *CommandManger) handleXRange(e CommandEvent) {
+func (cm *CommandManger) handleXRange(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *XRangeArgs) {
 		entries, err := cm.store.XRange(args.Key, args.Start, args.End)
 		if err != nil {
@@ -60,7 +61,7 @@ func (cm *CommandManger) handleXRange(e CommandEvent) {
 }
 
 // handleXRead는 XREAD 명령어를 처리합니다
-func (cm *CommandManger) handleXRead(e CommandEvent) {
+func (cm *CommandManger) handleXRead(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *XReadArgs) {
 		//if len(e.Args) < 3 {
 		//	e.Ctx.Write(protocol.AppendError([]byte{}, "ERR wrong number of arguments for 'xread' command"))

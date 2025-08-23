@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/codecrafters-io/redis-starter-go/app/types"
 )
 
 func (cm *CommandManger) registerStringCommands() {
@@ -12,7 +13,7 @@ func (cm *CommandManger) registerStringCommands() {
 	cm.register("INCR", cm.handleIncr)
 }
 
-func (cm *CommandManger) handleGet(e CommandEvent) {
+func (cm *CommandManger) handleGet(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *GetArgs) {
 		value, exists := cm.store.Get(args.Key)
 
@@ -24,7 +25,7 @@ func (cm *CommandManger) handleGet(e CommandEvent) {
 	})
 }
 
-func (cm *CommandManger) handleSet(e CommandEvent) {
+func (cm *CommandManger) handleSet(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *SetArgs) {
 		var expire time.Time
 		if exp := args.GetExpiration(); exp != nil {
@@ -36,7 +37,7 @@ func (cm *CommandManger) handleSet(e CommandEvent) {
 	})
 }
 
-func (cm *CommandManger) handleIncr(e CommandEvent) {
+func (cm *CommandManger) handleIncr(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *IncrArgs) {
 		result, err := cm.store.Incr(args.Key)
 
