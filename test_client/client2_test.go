@@ -80,6 +80,8 @@ func TestXAdd(t *testing.T) {
 		},
 	})
 
+	fmt.Println(add.Val())
+
 	if add.Err() != nil {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}

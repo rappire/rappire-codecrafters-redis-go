@@ -1,4 +1,4 @@
-package main
+package protocol
 
 import (
 	"bufio"
@@ -25,7 +25,7 @@ type Resp struct {
 	Arr    []Resp
 }
 
-func readRESP(reader *bufio.Reader) (Resp, error) {
+func ReadRESP(reader *bufio.Reader) (Resp, error) {
 	line, err := reader.ReadString('\n')
 	if err != nil {
 		return Resp{}, err
@@ -33,7 +33,7 @@ func readRESP(reader *bufio.Reader) (Resp, error) {
 
 	line = strings.TrimRight(line, "\r\n")
 	if len(line) == 0 {
-		return Resp{}, fmt.Errorf("empty Line")
+		return Resp{}, fmt.Errorf("empty line")
 	}
 
 	respType := RespType(line[0])
@@ -42,6 +42,7 @@ func readRESP(reader *bufio.Reader) (Resp, error) {
 	switch respType {
 	case SimpleString, Error, Integer:
 		return Resp{Type: respType, Data: []byte(payload)}, nil
+
 	case Array:
 		length, err := strconv.Atoi(payload)
 		if err != nil {
@@ -53,7 +54,7 @@ func readRESP(reader *bufio.Reader) (Resp, error) {
 
 		arr := make([]Resp, 0, length)
 		for i := 0; i < length; i++ {
-			elem, err := readRESP(reader)
+			elem, err := ReadRESP(reader)
 			if err != nil {
 				return Resp{}, err
 			}
@@ -80,15 +81,10 @@ func readRESP(reader *bufio.Reader) (Resp, error) {
 		}
 		data := buf[:length]
 		return Resp{Type: respType, Data: data}, nil
-	default:
-		return Resp{}, fmt.Errorf("unknown Resp type: %c", respType)
-	}
-}
 
-func appendPrefix(buf []byte, c byte, n int64) []byte {
-	buf = append(buf, c)
-	buf = strconv.AppendInt(buf, n, 10)
-	return append(buf, '\r', '\n')
+	default:
+		return Resp{}, fmt.Errorf("unknown RESP type: %c", respType)
+	}
 }
 
 func AppendString(buf []byte, data string) []byte {
@@ -115,4 +111,18 @@ func AppendArray(buf []byte, n int) []byte {
 
 func AppendInt(buf []byte, n int) []byte {
 	return appendPrefix(buf, ':', int64(n))
+}
+
+func AppendNilBulkString() []byte {
+	return []byte("$-1\r\n")
+}
+
+func AppendNilArray() []byte {
+	return []byte("*-1\r\n")
+}
+
+func appendPrefix(buf []byte, c byte, n int64) []byte {
+	buf = append(buf, c)
+	buf = strconv.AppendInt(buf, n, 10)
+	return append(buf, '\r', '\n')
 }

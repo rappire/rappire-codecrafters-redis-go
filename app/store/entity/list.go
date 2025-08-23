@@ -1,6 +1,8 @@
 package entity
 
-import "github.com/codecrafters-io/redis-starter-go/app/entity/list"
+import (
+	"github.com/codecrafters-io/redis-starter-go/app/store/entity/list"
+)
 
 type ListEntity struct {
 	ValueData *list.QuickList

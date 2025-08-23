@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/codecrafters-io/redis-starter-go/app/entity"
+	"github.com/codecrafters-io/redis-starter-go/app/store/entity"
 )
 
 type Store struct {
