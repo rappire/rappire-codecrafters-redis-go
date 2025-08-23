@@ -395,10 +395,10 @@ func TestXRead3(t *testing.T) {
 	go func() {
 		read := rdb.XRead(ctx, &redis.XReadArgs{
 			Streams: []string{"block3"},
-			ID:      "$",
-			Block:   0,
+			ID:      "0-1",
+			Block:   500,
 		})
-		fmt.Println(read.Val())
+		fmt.Println("result", read.Val())
 	}()
 
 	time.Sleep(1000 * time.Millisecond)
@@ -414,4 +414,5 @@ func TestXRead3(t *testing.T) {
 	if add.Err() != nil {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
+	time.Sleep(2 * time.Second)
 }
