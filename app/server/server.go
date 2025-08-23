@@ -22,14 +22,15 @@ type Server struct {
 	wg            sync.WaitGroup
 }
 
-func NewServer(addr string) (*Server, error) {
+func NewServer(addr string, replicaOf string) (*Server, error) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bind to %s: %v", addr, err)
 	}
 
 	newStore := store.NewStore()
-	serverInfo := NewServerInfo()
+	serverInfo := NewServerInfo(replicaOf)
+	fmt.Println("New server info:", serverInfo)
 
 	server := &Server{
 		listener:      listener,

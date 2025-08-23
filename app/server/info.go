@@ -27,8 +27,14 @@ func (s *ServerInfo) GetInfo() string {
 		s.replBacklogHistLen)
 }
 
-func NewServerInfo() *ServerInfo {
+func NewServerInfo(role string) *ServerInfo {
+	if role == "" {
+		role = "master"
+	} else {
+		role = "slave"
+	}
+
 	return &ServerInfo{
-		role: "master",
+		role: role,
 	}
 }
