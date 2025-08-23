@@ -396,7 +396,7 @@ func TestXRead3(t *testing.T) {
 		read := rdb.XRead(ctx, &redis.XReadArgs{
 			Streams: []string{"block3"},
 			ID:      "0-1",
-			Block:   500,
+			Block:   500 * time.Millisecond,
 		})
 		fmt.Println("result", read.Val())
 	}()

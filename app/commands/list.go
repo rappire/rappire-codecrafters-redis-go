@@ -6,7 +6,6 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 )
 
-// registerListCommands는 리스트 관련 명령어들을 등록합니다
 func (cm *CommandManger) registerListCommands() {
 	cm.register("RPUSH", cm.handleRPush)
 	cm.register("LPUSH", cm.handleLPush)

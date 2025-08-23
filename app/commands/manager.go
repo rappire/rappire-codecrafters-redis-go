@@ -60,6 +60,7 @@ func NewCommandManger(store *store.Store) *CommandManger {
 	commandManger.registerStringCommands()
 	commandManger.registerStreamCommands()
 	commandManger.registerTransactionCommands()
+	commandManger.registerListCommands()
 
 	return commandManger
 }
