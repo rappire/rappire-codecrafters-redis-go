@@ -34,11 +34,10 @@ func (args *GetArgs) Validate() error {
 }
 
 type SetArgs struct {
-	Key    string   `redis:"key"`
-	Value  string   `redis:"value"`
-	Option string   `redis:"-"`                        // 내부에서만 사용
-	Expiry int      `redis:"-"`                        // 내부에서만 사용
-	_      struct{} `redis:",parser=keyword_optional"` // 커스텀 파서 트리거
+	Key    string `redis:"key"`
+	Value  string `redis:"value"`
+	Option string `redis:"option,optional"`
+	Expiry int    `redis:"expiry,optional"`
 }
 
 func (args *SetArgs) Validate() error {
