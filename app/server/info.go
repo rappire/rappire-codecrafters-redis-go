@@ -1,6 +1,10 @@
 package server
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
 
 type ServerInfo struct {
 	role                       string
@@ -27,14 +31,33 @@ func (s *ServerInfo) GetInfo() string {
 		s.replBacklogHistLen)
 }
 
+func createMasterReplId() string {
+	chars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	length := 40
+
+	var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = chars[seededRand.Intn(len(chars))]
+	}
+	return string(b)
+}
+
 func NewServerInfo(role string) *ServerInfo {
+	masterReplId := ""
+	masterReplOffset := 0
+
 	if role == "" {
 		role = "master"
+		masterReplId = createMasterReplId()
 	} else {
 		role = "slave"
 	}
 
 	return &ServerInfo{
-		role: role,
+		role:             role,
+		masterReplId:     masterReplId,
+		masterReplOffset: masterReplOffset,
 	}
 }
