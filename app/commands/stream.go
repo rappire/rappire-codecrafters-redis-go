@@ -122,7 +122,7 @@ func (cm *CommandManger) handleXRead(e CommandEvent) {
 
 		// 블로킹 연산이므로 고루틴에서 실행
 		go func() {
-			entries, err := cm.store.XRead(time.Duration(args.Timeout), args.Keys, args.IDs)
+			entries, err := cm.store.XRead(time.Duration(args.Timeout)*time.Millisecond, args.Keys, args.IDs)
 			if err != nil {
 				e.Ctx.Write(protocol.AppendError([]byte{}, err.Error()))
 				return

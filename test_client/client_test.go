@@ -261,3 +261,46 @@ func TestBLPush(t *testing.T) {
 	wg.Wait()
 	fmt.Println("Finish")
 }
+
+func TestXRead4(t *testing.T) {
+	fmt.Println("XRead4 테스트")
+
+	fmt.Println("XAdd")
+	message := "*5\r\n$4\r\nXADD\r\n$5\r\ngrape\r\n$3\r\n0-1\r\n$11\r\ntemperature\r\n$2\r\n46\r\n"
+	resp := sendAndReceive(t, message)
+	expected := "$3\r\n0-1\r\n"
+	if resp != expected {
+		t.Errorf("XAdd 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		fmt.Println("XRead")
+		message = "*1\r\n*2\r\n$5\r\ngrape\r\n*1\r\n*2\r\n$3\r\n0-2\r\n*2\r\n$11\r\ntemperature\r\n$2\r\n47\r\n"
+		resp = sendAndReceive(t, message)
+		fmt.Println("get", resp)
+		expected = "$3\r\n0-2\r\n"
+		if resp != expected {
+			t.Errorf("XRead 응답이 잘못됨. got=%q, want=%q", resp, expected)
+			return
+		}
+	}()
+	time.Sleep(500 * time.Millisecond)
+	fmt.Println("After Sleep")
+
+	fmt.Println("XAdd")
+	message = "*5\r\n$4\r\nXADD\r\n$5\r\ngrape\r\n$3\r\n0-2\r\n$11\r\ntemperature\r\n$2\r\n47\r\n"
+	resp = sendAndReceive(t, message)
+	expected = "$3\r\n0-2\r\n"
+	if resp != expected {
+		t.Errorf("XAdd 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+
+	wg.Wait()
+	fmt.Println("Finish")
+}
