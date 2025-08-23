@@ -16,6 +16,7 @@ type ServerInfo struct {
 	replBacklogSize            int
 	replBacklogFirstByteOffset int
 	replBacklogHistLen         int
+	masterServerInfo           string
 }
 
 func (s *ServerInfo) GetInfo() string {
@@ -44,11 +45,12 @@ func createMasterReplId() string {
 	return string(b)
 }
 
-func NewServerInfo(role string) *ServerInfo {
+func NewServerInfo(masterServerInfo string) *ServerInfo {
+	role := ""
 	masterReplId := ""
 	masterReplOffset := 0
 
-	if role == "" {
+	if masterServerInfo == "" {
 		role = "master"
 		masterReplId = createMasterReplId()
 	} else {
@@ -59,5 +61,6 @@ func NewServerInfo(role string) *ServerInfo {
 		role:             role,
 		masterReplId:     masterReplId,
 		masterReplOffset: masterReplOffset,
+		masterServerInfo: masterServerInfo,
 	}
 }

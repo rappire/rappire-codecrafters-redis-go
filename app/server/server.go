@@ -3,9 +3,11 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
@@ -31,6 +33,19 @@ func NewServer(addr string, replicaOf string) (*Server, error) {
 	newStore := store.NewStore()
 	serverInfo := NewServerInfo(replicaOf)
 	fmt.Println("New server info:", serverInfo)
+
+	if serverInfo.masterServerInfo != "" {
+		dial, err := net.Dial("tcp", serverInfo.masterServerInfo)
+		defer dial.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to master server %s: %v", serverInfo.masterServerInfo, err)
+		}
+
+		if _, err := io.WriteString(dial, "*1\r\n$4\r\nPING\r\n"); err != nil {
+			return nil, fmt.Errorf("failed to write message: %v", err)
+		}
+		time.Sleep(3 * time.Second)
+	}
 
 	server := &Server{
 		listener:      listener,
