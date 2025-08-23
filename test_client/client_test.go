@@ -77,7 +77,7 @@ func TestSetAndGet(t *testing.T) {
 
 func TestExpire(t *testing.T) {
 	fmt.Println("Set Expire 테스트")
-	message := "*5\r\n$3\r\nSET\r\n$10\r\nstrawberry\r\n$5\r\ngrape\r\n$2\r\nPX\r\n$3\r\n100\r\n"
+	message := "*5\r\n$3\r\nSET\r\n$10\r\nstrawberry\r\n$5\r\ngrape\r\n$2\r\npx\r\n$3\r\n100\r\n"
 	resp := sendAndReceive(t, message)
 	expected := "+OK\r\n"
 	if resp != expected {

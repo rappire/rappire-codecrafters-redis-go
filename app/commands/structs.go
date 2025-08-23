@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -41,17 +42,17 @@ type SetArgs struct {
 }
 
 func (args *SetArgs) Validate() error {
-	if args.Option != "" && args.Option != "PX" {
+	if args.Option != "" && strings.ToUpper(args.Option) != "PX" {
 		return fmt.Errorf("unsupported SET option: %s", args.Option)
 	}
-	if args.Option == "PX" && args.Expiry <= 0 {
+	if strings.ToUpper(args.Option) == "PX" && args.Expiry <= 0 {
 		return fmt.Errorf("PX expiry must be positive")
 	}
 	return nil
 }
 
 func (args *SetArgs) GetExpiration() *time.Time {
-	if args.Option == "PX" && args.Expiry > 0 {
+	if strings.ToUpper(args.Option) == "PX" && args.Expiry > 0 {
 		exp := time.Now().Add(time.Duration(args.Expiry) * time.Millisecond)
 		return &exp
 	}

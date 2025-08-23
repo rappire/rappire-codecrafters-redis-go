@@ -64,6 +64,8 @@ func (ap *ArgParser) Parse(args CommandArgs) ParseResult {
 				variadic = true
 			case "field_value_pairs":
 				specialParser = "field_value_pairs"
+			case "keyword_option":
+				specialParser = "keyword_option"
 			case "xread_block":
 				specialParser = "xread_block"
 			case "xread_timeout":
@@ -138,6 +140,7 @@ func (ap *ArgParser) hasSpecialParsers(t reflect.Type) bool {
 		tag := t.Field(i).Tag.Get("redis")
 		if strings.Contains(tag, "variadic") ||
 			strings.Contains(tag, "field_value_pairs") ||
+			strings.Contains(tag, "keyword_option") ||
 			strings.Contains(tag, "xread_") {
 			return true
 		}
@@ -149,6 +152,8 @@ func (ap *ArgParser) handleSpecialParser(parserType string, fieldValue reflect.V
 	switch parserType {
 	case "field_value_pairs":
 		return ap.parseFieldValuePairs(fieldValue, argIndex)
+	case "keyword_option":
+		return ap.parseKeywordOption(fieldValue, argIndex, structValue)
 	case "xread_block":
 		return ap.parseXReadBlock(fieldValue, argIndex)
 	case "xread_timeout":
@@ -176,6 +181,40 @@ func (ap *ArgParser) parseFieldValuePairs(fieldValue reflect.Value, argIndex int
 	}
 	fieldValue.Set(reflect.ValueOf(fields))
 	return len(ap.event.Args), nil
+}
+
+func (ap *ArgParser) parseKeywordOption(fieldValue reflect.Value, argIndex int, structValue reflect.Value) (int, error) {
+	if argIndex >= len(ap.event.Args) {
+		return argIndex, nil // 옵션이 없음
+	}
+
+	option := strings.ToUpper(string(ap.event.Args[argIndex]))
+
+	switch option {
+	case "PX":
+		fieldValue.SetString(option)
+		argIndex++
+
+		// 다음 인수가 있어야 함 (expiry time)
+		if argIndex >= len(ap.event.Args) {
+			return argIndex, fmt.Errorf("missing expiry time for PX option")
+		}
+
+		expiry, err := strconv.Atoi(string(ap.event.Args[argIndex]))
+		if err != nil {
+			return argIndex, fmt.Errorf("invalid expiry time")
+		}
+
+		if expiryField := structValue.FieldByName("Expiry"); expiryField.IsValid() && expiryField.CanSet() {
+			expiryField.SetInt(int64(expiry))
+		}
+		argIndex++
+	default:
+		// 알려지지 않은 옵션은 무시
+		return argIndex, nil
+	}
+
+	return argIndex, nil
 }
 
 // parseXAddFields는 XADD 명령어의 필드-값 쌍을 파싱합니다
