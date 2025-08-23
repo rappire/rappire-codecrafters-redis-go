@@ -19,8 +19,8 @@ func (cm *CommandManger) registerStreamCommands() {
 func (cm *CommandManger) handleXAdd(e CommandEvent) {
 	ParseAndExecute(e, func(args *XAddArgs) {
 		fields := make([]entity.FieldValue, 0, len(args.Fields))
-		for _, field := range args.Fields {
-			fields = append(fields, entity.FieldValue{Key: field, Value: args.Fields[field]})
+		for key, value := range args.Fields {
+			fields = append(fields, entity.FieldValue{Key: key, Value: value})
 		}
 		generatedId, err := cm.store.XAdd(args.Key, args.ID, fields)
 		if err != nil {
@@ -44,13 +44,8 @@ func (cm *CommandManger) handleXRange(e CommandEvent) {
 		// 결과를 RESP 배열로 변환
 		msg := protocol.AppendArray([]byte{}, len(entries))
 		for _, entry := range entries {
-			// 각 엔트리는 [ID, [field1, value1, field2, value2, ...]] 형태
 			entryArray := protocol.AppendArray([]byte{}, 2)
-
-			// ID 추가
 			entryArray = protocol.AppendBulkString(entryArray, []byte(fmt.Sprintf("%d-%d", entry.Id.Millis, entry.Id.Seq)))
-
-			// 필드-값 배열 추가
 			entryArray = protocol.AppendArray(entryArray, len(entry.Fields)*2)
 			for _, field := range entry.Fields {
 				entryArray = protocol.AppendBulkString(entryArray, []byte(field.Key))

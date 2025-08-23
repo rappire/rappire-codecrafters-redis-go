@@ -378,3 +378,40 @@ func TestXReadBlock2(t *testing.T) {
 		t.Fatalf("XAdd failed: %v", add.Err())
 	}
 }
+
+func TestXRead3(t *testing.T) {
+	add := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "block3",
+		ID:     "0-1",
+		Values: map[string]interface{}{
+			"temperature": "93",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+
+	go func() {
+		read := rdb.XRead(ctx, &redis.XReadArgs{
+			Streams: []string{"block3"},
+			ID:      "$",
+			Block:   0,
+		})
+		fmt.Println(read.Val())
+	}()
+
+	time.Sleep(1000 * time.Millisecond)
+
+	add = rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "block3",
+		ID:     "0-2",
+		Values: map[string]interface{}{
+			"temperature": "93",
+		},
+	})
+
+	if add.Err() != nil {
+		t.Fatalf("XAdd failed: %v", add.Err())
+	}
+}
