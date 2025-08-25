@@ -24,19 +24,19 @@ type Server struct {
 	client        *client.Client
 }
 
-func NewServer(addr string, replicaOf string) (*Server, error) {
+func NewServer(addr string, replicaOf string, port int) (*Server, error) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to bind to %s: %v", addr, err)
 	}
 
 	newStore := store.NewStore()
-	serverInfo := NewServerInfo(replicaOf)
+	serverInfo := types.NewServerInfo(port, replicaOf)
 	fmt.Println("New server info:", serverInfo)
 	var newClient *client.Client
 
-	if serverInfo.masterServerIp != "" {
-		newClient, err = client.NewClient(serverInfo.masterServerIp, serverInfo.masterServerPort)
+	if serverInfo.IsSlave() {
+		newClient, err = client.NewClient(serverInfo)
 		if err != nil {
 			return nil, err
 		}

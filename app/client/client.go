@@ -6,20 +6,20 @@ import (
 	"strconv"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/codecrafters-io/redis-starter-go/app/types"
 )
 
 type Client struct {
 	conn net.Conn
-	ip   string
-	port int
+	info *types.ServerInfo
 }
 
-func NewClient(ip string, port int) (*Client, error) {
-	conn, err := net.Dial("tcp", ip+":"+strconv.Itoa(port))
+func NewClient(info *types.ServerInfo) (*Client, error) {
+	conn, err := net.Dial("tcp", info.GetMasterAddress())
 	if err != nil {
 		return nil, err
 	}
-	return &Client{conn: conn, ip: ip, port: port}, nil
+	return &Client{conn: conn, info: info}, nil
 }
 
 func (c *Client) CloseClient() {
@@ -38,11 +38,11 @@ func (c *Client) Init() error {
 		return err
 	}
 
-	fmt.Println("send replconf listening-port " + strconv.Itoa(c.port))
+	fmt.Println("send replconf listening-port " + strconv.Itoa(c.info.ServerPort))
 	msg = protocol.AppendArray([]byte{}, 3)
 	msg = protocol.AppendBulkString(msg, []byte("REPLCONF"))
 	msg = protocol.AppendBulkString(msg, []byte("listening-port"))
-	msg = protocol.AppendBulkString(msg, []byte(strconv.Itoa(c.port)))
+	msg = protocol.AppendBulkString(msg, []byte(strconv.Itoa(c.info.ServerPort)))
 
 	receive, err = sendAndReceive(c.conn, msg)
 	if err != nil || receive != "+OK\r\n" {

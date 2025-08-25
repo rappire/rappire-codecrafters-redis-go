@@ -1,4 +1,4 @@
-package server
+package types
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 type ServerInfo struct {
 	role                       string
+	ServerPort                 int
 	connectedSlave             int
 	masterReplId               string
 	masterReplOffset           int
@@ -20,6 +21,10 @@ type ServerInfo struct {
 	replBacklogHistLen         int
 	masterServerIp             string
 	masterServerPort           int
+}
+
+func (s *ServerInfo) GetMasterAddress() string {
+	return s.masterServerIp + ":" + strconv.Itoa(s.masterServerPort)
 }
 
 func (s *ServerInfo) GetInfo() string {
@@ -48,13 +53,21 @@ func createMasterReplId() string {
 	return string(b)
 }
 
-func NewServerInfo(masterServerInfo string) *ServerInfo {
+func (s *ServerInfo) IsSlave() bool {
+	return s.role == "slave"
+}
+
+func NewServerInfo(serverPort int, masterServerInfo string) *ServerInfo {
+	if serverPort == 0 {
+		serverPort = 6379
+	}
 
 	if masterServerInfo == "" {
 		return &ServerInfo{
 			role:             "master",
 			masterReplId:     createMasterReplId(),
 			masterReplOffset: 0,
+			ServerPort:       serverPort,
 		}
 	}
 
@@ -70,5 +83,6 @@ func NewServerInfo(masterServerInfo string) *ServerInfo {
 		role:             "slave",
 		masterServerIp:   masterServerIp,
 		masterServerPort: masterServerPort,
+		ServerPort:       serverPort,
 	}
 }

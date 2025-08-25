@@ -14,9 +14,10 @@ func main() {
 	port := flag.Int("port", 6379, "Port to listen on")
 	replicaOf := flag.String("replicaof", "", "Set server as replica")
 	flag.Parse()
+
 	address := fmt.Sprintf("0.0.0.0:%d", *port)
 
-	newServer, err := server.NewServer(address, *replicaOf)
+	newServer, err := server.NewServer(address, *replicaOf, *port)
 	if err != nil {
 		fmt.Printf("Failed to create server: %v\n", err)
 		os.Exit(1)
