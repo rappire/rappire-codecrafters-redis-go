@@ -73,7 +73,7 @@ func (c *Client) Init() error {
 	msg = protocol.AppendBulkString(msg, []byte("-1"))
 
 	receive, err = sendAndReceive(c.conn, msg)
-	if err != nil || receive != "+OK\r\n" {
+	if err != nil {
 		fmt.Println("handshake failed")
 		fmt.Println(receive)
 		fmt.Println(err.Error())
