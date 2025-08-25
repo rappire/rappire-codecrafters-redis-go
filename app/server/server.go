@@ -3,11 +3,11 @@ package server
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"strings"
 	"sync"
 
+	"github.com/codecrafters-io/redis-starter-go/app/client"
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/codecrafters-io/redis-starter-go/app/store"
@@ -21,6 +21,7 @@ type Server struct {
 	commandManger *commands.CommandManger
 	shutdownCh    chan struct{}
 	wg            sync.WaitGroup
+	client        *client.Client
 }
 
 func NewServer(addr string, replicaOf string) (*Server, error) {
@@ -32,16 +33,16 @@ func NewServer(addr string, replicaOf string) (*Server, error) {
 	newStore := store.NewStore()
 	serverInfo := NewServerInfo(replicaOf)
 	fmt.Println("New server info:", serverInfo)
+	var newClient *client.Client
 
-	if serverInfo.masterServerInfo != "" {
-		dial, err := net.Dial("tcp", serverInfo.masterServerInfo)
-		defer dial.Close()
+	if serverInfo.masterServerIp != "" {
+		newClient, err = client.NewClient(serverInfo.masterServerIp, serverInfo.masterServerPort)
 		if err != nil {
-			return nil, fmt.Errorf("failed to connect to master server %s: %v", serverInfo.masterServerInfo, err)
+			return nil, err
 		}
-
-		if _, err := io.WriteString(dial, "*1\r\n$4\r\nPING\r\n"); err != nil {
-			return nil, fmt.Errorf("failed to write message: %v", err)
+		err = newClient.Init()
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -50,6 +51,7 @@ func NewServer(addr string, replicaOf string) (*Server, error) {
 		eventChan:     make(chan types.CommandEvent, 100), // 버퍼링된 채널
 		commandManger: commands.NewCommandManger(newStore, serverInfo),
 		shutdownCh:    make(chan struct{}),
+		client:        newClient,
 	}
 
 	return server, nil
@@ -89,6 +91,8 @@ func (s *Server) Start() {
 
 func (s *Server) Stop() {
 	fmt.Println("Server shutting down...")
+
+	s.client.CloseClient()
 
 	close(s.shutdownCh)
 	s.listener.Close()

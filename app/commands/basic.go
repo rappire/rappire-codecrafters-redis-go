@@ -10,7 +10,7 @@ func (cm *CommandManger) registerBasicCommands() {
 	cm.register("ECHO", cm.handleEcho)
 	cm.register("TYPE", cm.handleType)
 	cm.register("INFO", cm.handleInfo)
-
+	cm.register("REPLCONF", cm.handleReplConf)
 }
 
 func (cm *CommandManger) handlePing(e types.CommandEvent) {
@@ -34,4 +34,8 @@ func (cm *CommandManger) handleInfo(e types.CommandEvent) {
 	ParseAndExecute(e, func(args *InfoArgs) {
 		e.Ctx.Write(protocol.AppendBulkString([]byte{}, []byte(cm.serverInfo.GetInfo())))
 	})
+}
+
+func (cm *CommandManger) handleReplConf(e types.CommandEvent) {
+	e.Ctx.Write(protocol.AppendString([]byte{}, "OK"))
 }

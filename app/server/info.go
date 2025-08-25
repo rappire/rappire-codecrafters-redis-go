@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,7 +18,8 @@ type ServerInfo struct {
 	replBacklogSize            int
 	replBacklogFirstByteOffset int
 	replBacklogHistLen         int
-	masterServerInfo           string
+	masterServerIp             string
+	masterServerPort           int
 }
 
 func (s *ServerInfo) GetInfo() string {
@@ -47,25 +49,26 @@ func createMasterReplId() string {
 }
 
 func NewServerInfo(masterServerInfo string) *ServerInfo {
-	role := ""
-	masterReplId := ""
-	masterReplOffset := 0
 
 	if masterServerInfo == "" {
-		role = "master"
-		masterReplId = createMasterReplId()
-	} else {
-		role = "slave"
-		split := strings.Split(masterServerInfo, " ")
-		masterServerIp := split[0]
-		masterServerPort := split[1]
-		masterServerInfo = masterServerIp + ":" + masterServerPort
+		return &ServerInfo{
+			role:             "master",
+			masterReplId:     createMasterReplId(),
+			masterReplOffset: 0,
+		}
+	}
+
+	split := strings.Split(masterServerInfo, " ")
+	masterServerIp := split[0]
+	masterServerPort, err := strconv.Atoi(split[1])
+	// TODO 에러 처리
+	if err != nil {
+		return nil
 	}
 
 	return &ServerInfo{
-		role:             role,
-		masterReplId:     masterReplId,
-		masterReplOffset: masterReplOffset,
-		masterServerInfo: masterServerInfo,
+		role:             "slave",
+		masterServerIp:   masterServerIp,
+		masterServerPort: masterServerPort,
 	}
 }

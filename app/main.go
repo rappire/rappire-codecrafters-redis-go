@@ -14,7 +14,6 @@ func main() {
 	port := flag.Int("port", 6379, "Port to listen on")
 	replicaOf := flag.String("replicaof", "", "Set server as replica")
 	flag.Parse()
-
 	address := fmt.Sprintf("0.0.0.0:%d", *port)
 
 	newServer, err := server.NewServer(address, *replicaOf)
