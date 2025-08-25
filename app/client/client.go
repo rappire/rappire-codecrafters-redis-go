@@ -68,7 +68,7 @@ func (c *Client) Init() error {
 
 	fmt.Println("send psync")
 	msg = protocol.AppendArray([]byte{}, 3)
-	msg = protocol.AppendBulkString(msg, []byte("nPSYNC"))
+	msg = protocol.AppendBulkString(msg, []byte("PSYNC"))
 	msg = protocol.AppendBulkString(msg, []byte("?"))
 	msg = protocol.AppendBulkString(msg, []byte("-1"))
 
