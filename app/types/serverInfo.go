@@ -57,6 +57,10 @@ func (s *ServerInfo) IsSlave() bool {
 	return s.role == "slave"
 }
 
+func (s *ServerInfo) GetReplId() string {
+	return s.masterReplId
+}
+
 func NewServerInfo(serverPort int, masterServerInfo string) *ServerInfo {
 	if serverPort == 0 {
 		serverPort = 6379

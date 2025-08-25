@@ -11,6 +11,7 @@ func (cm *CommandManger) registerBasicCommands() {
 	cm.register("TYPE", cm.handleType)
 	cm.register("INFO", cm.handleInfo)
 	cm.register("REPLCONF", cm.handleReplConf)
+	cm.register("PSYNC", cm.handlePsync)
 }
 
 func (cm *CommandManger) handlePing(e types.CommandEvent) {
@@ -38,4 +39,8 @@ func (cm *CommandManger) handleInfo(e types.CommandEvent) {
 
 func (cm *CommandManger) handleReplConf(e types.CommandEvent) {
 	e.Ctx.Write(protocol.AppendString([]byte{}, "OK"))
+}
+
+func (cm *CommandManger) handlePsync(e types.CommandEvent) {
+	e.Ctx.Write(protocol.AppendString([]byte{}, "FULLRESYNC "+cm.serverInfo.GetReplId()+" 0"))
 }

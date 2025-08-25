@@ -65,6 +65,20 @@ func (c *Client) Init() error {
 		fmt.Println(err.Error())
 		return err
 	}
+
+	fmt.Println("send psync")
+	msg = protocol.AppendArray([]byte{}, 3)
+	msg = protocol.AppendBulkString(msg, []byte("nPSYNC"))
+	msg = protocol.AppendBulkString(msg, []byte("?"))
+	msg = protocol.AppendBulkString(msg, []byte("-1"))
+
+	receive, err = sendAndReceive(c.conn, msg)
+	if err != nil || receive != "+OK\r\n" {
+		fmt.Println("handshake failed")
+		fmt.Println(receive)
+		fmt.Println(err.Error())
+		return err
+	}
 	return nil
 }
 

@@ -7,6 +7,7 @@ import (
 
 type ServerInfoProvider interface {
 	GetInfo() string
+	GetReplId() string
 }
 
 type CommandManger struct {
