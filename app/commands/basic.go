@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/codecrafters-io/redis-starter-go/app/types"
@@ -41,6 +42,11 @@ func (cm *CommandManger) handleInfo(e types.CommandEvent) {
 
 func (cm *CommandManger) handleReplConf(e types.CommandEvent) {
 	e.Ctx.Write(protocol.AppendString([]byte{}, "OK"))
+	if slices.Contains(cm.replicas, e.Ctx) {
+		return
+	}
+
+	cm.replicas = append(cm.replicas, e.Ctx)
 }
 
 func (cm *CommandManger) handlePsync(e types.CommandEvent) {

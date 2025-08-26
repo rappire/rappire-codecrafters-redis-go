@@ -35,6 +35,8 @@ func (cm *CommandManger) handleSet(e types.CommandEvent) {
 		cm.store.Set(args.Key, args.Value, expire)
 		e.Ctx.Write(protocol.AppendString([]byte{}, "OK"))
 	})
+
+	cm.Replicate(e)
 }
 
 func (cm *CommandManger) handleIncr(e types.CommandEvent) {

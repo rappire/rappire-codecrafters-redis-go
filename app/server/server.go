@@ -22,6 +22,7 @@ type Server struct {
 	shutdownCh    chan struct{}
 	wg            sync.WaitGroup
 	client        *client.Client
+	info          *types.ServerInfo
 }
 
 func NewServer(addr string, replicaOf string, port int) (*Server, error) {
@@ -52,12 +53,18 @@ func NewServer(addr string, replicaOf string, port int) (*Server, error) {
 		commandManger: commands.NewCommandManger(newStore, serverInfo),
 		shutdownCh:    make(chan struct{}),
 		client:        newClient,
+		info:          serverInfo,
 	}
 
 	return server, nil
 }
 
 func (s *Server) Start() {
+	if s.info.IsSlave() {
+		s.SlaveStart()
+		return
+	}
+
 	fmt.Printf("Redis server starting on %s\n", s.listener.Addr().String())
 
 	// 이벤트 루프를 별도 고루틴에서 시작
@@ -183,6 +190,39 @@ func (s *Server) handleConnection(conn net.Conn) {
 			case <-s.shutdownCh:
 				return
 			}
+		}
+	}
+}
+
+func (s *Server) SlaveStart() {
+	fmt.Printf("Redis slave starting on %s\n", s.listener.Addr().String())
+
+	// 이벤트 루프를 별도 고루틴에서 시작
+	s.wg.Add(2)
+	go s.handleConnection(s.client.GetConn())
+	go s.eventLoop()
+
+	// 클라이언트 연결을 받는 메인 루프
+	for {
+		select {
+		case <-s.shutdownCh:
+			return
+		default:
+			conn, err := s.listener.Accept()
+			if err != nil {
+				select {
+				case <-s.shutdownCh:
+					return
+				default:
+					fmt.Printf("Error accepting connection: %v\n", err)
+					continue
+				}
+			}
+
+			fmt.Printf("New connection: %s\n", conn.RemoteAddr())
+
+			s.wg.Add(1)
+			go s.handleConnection(conn)
 		}
 	}
 }

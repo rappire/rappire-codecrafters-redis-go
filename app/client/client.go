@@ -22,6 +22,10 @@ func NewClient(info *types.ServerInfo) (*Client, error) {
 	return &Client{conn: conn, info: info}, nil
 }
 
+func (c *Client) GetConn() net.Conn {
+	return c.conn
+}
+
 func (c *Client) CloseClient() {
 	_ = c.conn.Close()
 }
