@@ -110,6 +110,7 @@ func (s *Server) eventLoop() {
 
 	for event := range s.eventChan {
 		s.processEvent(event)
+		s.info.AddOffset(len(event.Raw))
 	}
 }
 
@@ -158,7 +159,6 @@ func (s *Server) handleReplicaConnection(conn net.Conn) {
 		}
 
 		resp, err := protocol.ReadRESP(reader)
-		s.info.AddOffset(len(resp.Raw))
 		if err != nil {
 			if err.Error() == "EOF" {
 				fmt.Printf("Client disconnected: %s\n", conn.RemoteAddr())
@@ -183,7 +183,7 @@ func (s *Server) handleReplicaConnection(conn net.Conn) {
 			fmt.Println()
 
 			select {
-			case s.eventChan <- types.CommandEvent{Command: cmd, Args: args, Ctx: ctx}:
+			case s.eventChan <- types.CommandEvent{Command: cmd, Args: args, Ctx: ctx, Raw: resp.Raw}:
 			case <-s.shutdownCh:
 				return
 			}
@@ -206,7 +206,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 		}
 
 		resp, err := protocol.ReadRESP(reader)
-		s.info.AddOffset(len(resp.Raw))
 		if err != nil {
 			if err.Error() == "EOF" {
 				fmt.Printf("Client disconnected: %s\n", conn.RemoteAddr())
@@ -231,7 +230,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 			fmt.Println()
 
 			select {
-			case s.eventChan <- types.CommandEvent{Command: cmd, Args: args, Ctx: ctx}:
+			case s.eventChan <- types.CommandEvent{Command: cmd, Args: args, Ctx: ctx, Raw: resp.Raw}:
 			case <-s.shutdownCh:
 				return
 			}

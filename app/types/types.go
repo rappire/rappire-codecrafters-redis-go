@@ -39,6 +39,7 @@ type CommandEvent struct {
 	Ctx     *ConnContext
 	Command string
 	Args    [][]byte
+	Raw     []byte
 }
 
 type Handler func(CommandEvent)
