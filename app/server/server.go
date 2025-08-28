@@ -247,7 +247,6 @@ func (s *Server) SlaveStart() {
 		return
 	}
 	s.info.InitOffset()
-	fmt.Println("client initialized")
 
 	s.wg.Add(2)
 	go s.handleReplicaConnection(s.client.GetConn())
