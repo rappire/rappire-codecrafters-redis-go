@@ -243,14 +243,12 @@ func (s *Server) SlaveStart() {
 	fmt.Printf("Redis slave starting on %s\n", s.listener.Addr().String())
 	// 이벤트 루프를 별도 고루틴에서 시작
 
-	go func() {
-		err := s.client.Init()
-		if err != nil {
-			return
-		}
-		s.info.InitOffset()
-		fmt.Println("client initialized")
-	}()
+	err := s.client.Init()
+	if err != nil {
+		return
+	}
+	s.info.InitOffset()
+	fmt.Println("client initialized")
 
 	s.wg.Add(2)
 	go s.handleConnection(s.client.GetConn())
