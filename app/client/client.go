@@ -93,7 +93,7 @@ func (c *Client) Init() error {
 	// 여기서는 master가 +FULLRESYNC ... (SimpleString) 과 이어서 RDB Bulk를 보냄.
 	// sendAndReceive는 이를 올바르게 읽고 에러 없이 반환해야 함.
 	receive, err = c.sendAndReceive(msg)
-	fmt.Println(receive)
+	fmt.Println(string(receive.Raw))
 	if err != nil {
 		fmt.Println("handshake failed on PSYNC")
 		fmt.Println(err.Error())
