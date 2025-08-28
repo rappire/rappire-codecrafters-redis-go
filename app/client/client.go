@@ -3,8 +3,10 @@ package client
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
@@ -95,8 +97,9 @@ func (c *Client) Init() error {
 	// sendAndReceive는 이를 올바르게 읽고 에러 없이 반환해야 함.
 	go func() {
 		time.Sleep(time.Millisecond * 200)
-		receive, err = c.sendAndReceive(msg)
-		fmt.Println(string(receive.Raw))
+		c.conn.Write(msg)
+		rdb, err := ReadRDB(c.reader)
+		fmt.Println(string(rdb))
 		if err != nil {
 			fmt.Println("handshake failed on PSYNC")
 			fmt.Println(err.Error())
@@ -117,4 +120,41 @@ func (c *Client) sendAndReceive(msg []byte) (protocol.Resp, error) {
 		return protocol.Resp{}, err
 	}
 	return resp, nil
+}
+
+func ReadRDB(reader *bufio.Reader) ([]byte, error) {
+	// 1. 첫 줄 읽기: "$<len>\r\n"
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	line = strings.TrimRight(line, "\r\n")
+
+	if len(line) == 0 || line[0] != '$' {
+		return nil, fmt.Errorf("invalid RDB bulk string header: %q", line)
+	}
+
+	// 2. 길이 파싱
+	length, err := strconv.Atoi(line[1:])
+	if err != nil {
+		return nil, fmt.Errorf("invalid bulk string length: %v", err)
+	}
+	if length < 0 {
+		return nil, fmt.Errorf("null bulk string (no RDB)")
+	}
+
+	// 3. 본문 + CRLF 읽기
+	buf := make([]byte, length+2)
+	_, err = io.ReadFull(reader, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. 끝에 CRLF 체크
+	if buf[length] != '\r' || buf[length+1] != '\n' {
+		return nil, fmt.Errorf("invalid RDB format, missing CRLF")
+	}
+
+	// 5. RDB payload만 반환
+	return buf[:length], nil
 }
