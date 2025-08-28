@@ -70,6 +70,10 @@ func (s *ServerInfo) GetOffset() int {
 	return s.offset
 }
 
+func (s *ServerInfo) InitOffset() {
+	s.offset = 0
+}
+
 func NewServerInfo(serverPort int, masterServerInfo string) *ServerInfo {
 	if serverPort == 0 {
 		serverPort = 6379
