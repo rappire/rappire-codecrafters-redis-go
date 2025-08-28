@@ -11,6 +11,7 @@ import (
 type ServerInfoProvider interface {
 	GetInfo() string
 	GetReplId() string
+	GetOffset() int
 }
 
 type CommandManger struct {

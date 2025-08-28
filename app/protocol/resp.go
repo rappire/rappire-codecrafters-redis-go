@@ -23,6 +23,7 @@ type Resp struct {
 	Data   []byte
 	Length int
 	Arr    []Resp
+	Raw    []byte
 }
 
 func ReadRESP(reader *bufio.Reader) (Resp, error) {
@@ -30,6 +31,8 @@ func ReadRESP(reader *bufio.Reader) (Resp, error) {
 	if err != nil {
 		return Resp{}, err
 	}
+
+	raw := []byte(line)
 
 	line = strings.TrimRight(line, "\r\n")
 	if len(line) == 0 {
@@ -41,7 +44,7 @@ func ReadRESP(reader *bufio.Reader) (Resp, error) {
 
 	switch respType {
 	case SimpleString, Error, Integer:
-		return Resp{Type: respType, Data: []byte(payload)}, nil
+		return Resp{Type: respType, Data: []byte(payload), Raw: raw}, nil
 
 	case Array:
 		length, err := strconv.Atoi(payload)
@@ -49,7 +52,7 @@ func ReadRESP(reader *bufio.Reader) (Resp, error) {
 			return Resp{}, fmt.Errorf("invalid array length: %v", err)
 		}
 		if length < 0 {
-			return Resp{Type: respType, Data: nil, Length: length}, nil
+			return Resp{Type: respType, Data: nil, Length: length, Raw: raw}, nil
 		}
 
 		arr := make([]Resp, 0, length)
@@ -59,8 +62,9 @@ func ReadRESP(reader *bufio.Reader) (Resp, error) {
 				return Resp{}, err
 			}
 			arr = append(arr, elem)
+			raw = append(raw, elem.Raw...)
 		}
-		return Resp{Type: respType, Length: length, Arr: arr}, nil
+		return Resp{Type: respType, Length: length, Arr: arr, Raw: raw}, nil
 
 	case BulkString:
 		length, err := strconv.Atoi(payload)
@@ -80,7 +84,8 @@ func ReadRESP(reader *bufio.Reader) (Resp, error) {
 			return Resp{}, fmt.Errorf("invalid response format")
 		}
 		data := buf[:length]
-		return Resp{Type: respType, Data: data}, nil
+		raw = append(raw, buf...)
+		return Resp{Type: respType, Data: data, Raw: raw}, nil
 
 	default:
 		return Resp{}, fmt.Errorf("unknown RESP type: %c", respType)

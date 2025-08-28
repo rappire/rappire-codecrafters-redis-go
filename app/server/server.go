@@ -147,6 +147,54 @@ func (s *Server) wrapHandlerForTransaction(handler types.Handler, commandName st
 	}
 }
 
+func (s *Server) handleReplicaConnection(conn net.Conn) {
+	defer s.wg.Done()
+	defer conn.Close()
+
+	ctx := types.NewConnContext(conn, transaction.NewTransaction())
+	reader := bufio.NewReader(conn)
+
+	for {
+		select {
+		case <-s.shutdownCh:
+			return
+		default:
+		}
+
+		resp, err := protocol.ReadRESP(reader)
+		s.info.AddOffset(len(resp.Raw))
+		if err != nil {
+			if err.Error() == "EOF" {
+				fmt.Printf("Client disconnected: %s\n", conn.RemoteAddr())
+				return
+			}
+			fmt.Printf("Error reading from %s: %v\n", conn.RemoteAddr(), err)
+			return
+		}
+
+		if resp.Type == protocol.Array && resp.Length > 0 {
+			cmd := strings.ToUpper(string(resp.Arr[0].Data))
+			args := make([][]byte, 0, resp.Length-1)
+
+			for _, arg := range resp.Arr[1:] {
+				args = append(args, arg.Data)
+			}
+
+			fmt.Print(cmd)
+			for _, arg := range args {
+				fmt.Printf(" %s", string(arg))
+			}
+			fmt.Println()
+
+			select {
+			case s.eventChan <- types.CommandEvent{Command: cmd, Args: args, Ctx: ctx}:
+			case <-s.shutdownCh:
+				return
+			}
+		}
+	}
+}
+
 func (s *Server) handleConnection(conn net.Conn) {
 	defer s.wg.Done()
 	defer conn.Close()
@@ -162,6 +210,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		}
 
 		resp, err := protocol.ReadRESP(reader)
+		s.info.AddOffset(len(resp.Raw))
 		if err != nil {
 			if err.Error() == "EOF" {
 				fmt.Printf("Client disconnected: %s\n", conn.RemoteAddr())

@@ -21,6 +21,7 @@ type ServerInfo struct {
 	replBacklogHistLen         int
 	masterServerIp             string
 	masterServerPort           int
+	offset                     int
 }
 
 func (s *ServerInfo) GetMasterAddress() string {
@@ -59,6 +60,14 @@ func (s *ServerInfo) IsSlave() bool {
 
 func (s *ServerInfo) GetReplId() string {
 	return s.masterReplId
+}
+
+func (s *ServerInfo) AddOffset(o int) {
+	s.offset += o
+}
+
+func (s *ServerInfo) GetOffset() int {
+	return s.offset
 }
 
 func NewServerInfo(serverPort int, masterServerInfo string) *ServerInfo {

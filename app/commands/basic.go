@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/codecrafters-io/redis-starter-go/app/types"
@@ -41,12 +43,29 @@ func (cm *CommandManger) handleInfo(e types.CommandEvent) {
 }
 
 func (cm *CommandManger) handleReplConf(e types.CommandEvent) {
-	e.Ctx.Write(protocol.AppendString([]byte{}, "OK"))
-	if slices.Contains(cm.replicas, e.Ctx) {
+	ParseAndExecute(e, func(args *ReplConfArgs) {
+		switch strings.ToUpper(args.Reps2) {
+		case "LISTENING-PORT":
+			e.Ctx.Write(protocol.AppendString([]byte{}, "OK"))
+			if slices.Contains(cm.replicas, e.Ctx) {
+				return
+			}
+			cm.replicas = append(cm.replicas, e.Ctx)
+		case "CAPA":
+			e.Ctx.Write(protocol.AppendString([]byte{}, "OK"))
+			if slices.Contains(cm.replicas, e.Ctx) {
+				return
+			}
+			cm.replicas = append(cm.replicas, e.Ctx)
+		case "GETACK":
+			msg := protocol.AppendArray([]byte{}, 3)
+			msg = protocol.AppendBulkString(msg, []byte("REPLCONF"))
+			msg = protocol.AppendBulkString(msg, []byte("ACK"))
+			msg = protocol.AppendBulkString(msg, []byte(strconv.Itoa(cm.serverInfo.GetOffset())))
+			e.Ctx.Write(msg)
+		}
 		return
-	}
-
-	cm.replicas = append(cm.replicas, e.Ctx)
+	})
 }
 
 func (cm *CommandManger) handlePsync(e types.CommandEvent) {

@@ -215,3 +215,12 @@ type InfoArgs struct {
 func (args *InfoArgs) Validate() error {
 	return nil
 }
+
+type ReplConfArgs struct {
+	Reps2 string `redis:"reps2"`
+	Reps3 string `redis:"reps3"`
+}
+
+func (args *ReplConfArgs) Validate() error {
+	return nil
+}
