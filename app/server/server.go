@@ -247,6 +247,7 @@ func (s *Server) SlaveStart() {
 		return
 	}
 	s.info.InitOffset()
+
 	s.wg.Add(2)
 	go s.handleConnection(s.client.GetConn())
 	go s.eventLoop()
