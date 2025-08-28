@@ -58,6 +58,7 @@ func (cm *CommandManger) handleReplConf(e types.CommandEvent) {
 			}
 			cm.replicas = append(cm.replicas, e.Ctx)
 		case "GETACK":
+			fmt.Println("GETACK")
 			msg := protocol.AppendArray([]byte{}, 3)
 			msg = protocol.AppendBulkString(msg, []byte("REPLCONF"))
 			msg = protocol.AppendBulkString(msg, []byte("ACK"))
