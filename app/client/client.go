@@ -42,7 +42,6 @@ func (c *Client) Init() error {
 		return err
 	}
 
-	fmt.Println("send replconf listening-port " + strconv.Itoa(c.info.ServerPort))
 	msg = protocol.AppendArray([]byte{}, 3)
 	msg = protocol.AppendBulkString(msg, []byte("REPLCONF"))
 	msg = protocol.AppendBulkString(msg, []byte("listening-port"))
@@ -56,7 +55,6 @@ func (c *Client) Init() error {
 		return err
 	}
 
-	fmt.Println("send replconf capa psync2")
 	msg = protocol.AppendArray([]byte{}, 3)
 	msg = protocol.AppendBulkString(msg, []byte("REPLCONF"))
 	msg = protocol.AppendBulkString(msg, []byte("capa"))
@@ -70,7 +68,6 @@ func (c *Client) Init() error {
 		return err
 	}
 
-	fmt.Println("send psync")
 	msg = protocol.AppendArray([]byte{}, 3)
 	msg = protocol.AppendBulkString(msg, []byte("PSYNC"))
 	msg = protocol.AppendBulkString(msg, []byte("?"))
