@@ -251,7 +251,7 @@ func (s *Server) SlaveStart() {
 	fmt.Println("client initialized")
 
 	s.wg.Add(2)
-	go s.handleConnection(s.client.GetConn())
+	go s.handleReplicaConnection(s.client.GetConn())
 	go s.eventLoop()
 
 	// 클라이언트 연결을 받는 메인 루프
