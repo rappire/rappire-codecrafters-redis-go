@@ -304,3 +304,14 @@ func TestXRead4(t *testing.T) {
 	wg.Wait()
 	fmt.Println("Finish")
 }
+
+func TestReplConf(t *testing.T) {
+	fmt.Println("REPLCONF")
+	message := "*3\r\n$8\r\nreplconf\r\n$6\r\ngetack\r\n$1\r\n*\r\n"
+	resp := sendAndReceive(t, message)
+	expected := "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n"
+	if resp != expected {
+		t.Errorf("REPLCONF 응답이 잘못됨. got=%q, want=%q", resp, expected)
+		return
+	}
+}

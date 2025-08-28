@@ -41,10 +41,6 @@ func NewServer(addr string, replicaOf string, port int) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = newClient.Init()
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	server := &Server{
@@ -245,8 +241,11 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 func (s *Server) SlaveStart() {
 	fmt.Printf("Redis slave starting on %s\n", s.listener.Addr().String())
-
 	// 이벤트 루프를 별도 고루틴에서 시작
+	err := s.client.Init()
+	if err != nil {
+		return
+	}
 	s.wg.Add(2)
 	go s.handleConnection(s.client.GetConn())
 	go s.eventLoop()
