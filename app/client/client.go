@@ -131,7 +131,6 @@ func ReadRDB(reader *bufio.Reader) ([]byte, error) {
 	line = strings.TrimRight(line, "\r\n")
 
 	if len(line) == 0 || line[0] != '$' {
-
 		return nil, fmt.Errorf("invalid RDB bulk string header: %q", line)
 	}
 
