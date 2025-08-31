@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/codecrafters-io/redis-starter-go/app/types"
@@ -90,13 +91,15 @@ func (c *Client) Init() error {
 	fmt.Println("receive " + string(receive.Raw))
 
 	// 4) PSYNC ? -1
-	msg = protocol.AppendArray([]byte{}, 3)
-	msg = protocol.AppendBulkString(msg, []byte("PSYNC"))
-	msg = protocol.AppendBulkString(msg, []byte("?"))
-	msg = protocol.AppendBulkString(msg, []byte("-1"))
-
-	receive, err = c.sendAndReceive(msg)
 	go func() {
+		time.Sleep(100 * time.Millisecond)
+		msg = protocol.AppendArray([]byte{}, 3)
+		msg = protocol.AppendBulkString(msg, []byte("PSYNC"))
+		msg = protocol.AppendBulkString(msg, []byte("?"))
+		msg = protocol.AppendBulkString(msg, []byte("-1"))
+
+		receive, err = c.sendAndReceive(msg)
+
 		rdb, err := ReadRDB(c.reader)
 
 		fmt.Println(string(rdb))
