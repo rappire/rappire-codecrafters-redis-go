@@ -260,7 +260,6 @@ func (s *Server) SlaveStart() {
 			return
 		default:
 			conn, err := s.listener.Accept()
-			fmt.Println("new connection" + conn.RemoteAddr().String())
 			if err != nil {
 				select {
 				case <-s.shutdownCh:
@@ -270,9 +269,7 @@ func (s *Server) SlaveStart() {
 					continue
 				}
 			}
-
 			fmt.Printf("New connection: %s\n", conn.RemoteAddr())
-
 			s.wg.Add(1)
 			go s.handleConnection(conn)
 		}
