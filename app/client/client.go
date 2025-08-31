@@ -7,7 +7,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/protocol"
 	"github.com/codecrafters-io/redis-starter-go/app/types"
@@ -95,16 +94,14 @@ func (c *Client) Init() error {
 
 	// 여기서는 master가 +FULLRESYNC ... (SimpleString) 과 이어서 RDB Bulk를 보냄.
 	// sendAndReceive는 이를 올바르게 읽고 에러 없이 반환해야 함.
-	go func() {
-		time.Sleep(time.Millisecond * 200)
-		c.conn.Write(msg)
-		rdb, err := ReadRDB(c.reader)
-		fmt.Println(string(rdb))
-		if err != nil {
-			fmt.Println("handshake failed on PSYNC")
-			fmt.Println(err.Error())
-		}
-	}()
+	c.conn.Write(msg)
+	rdb, err := ReadRDB(c.reader)
+	fmt.Println(string(rdb))
+	if err != nil {
+		fmt.Println("handshake failed on PSYNC")
+		fmt.Println(err.Error())
+		return err
+	}
 	return nil
 }
 
