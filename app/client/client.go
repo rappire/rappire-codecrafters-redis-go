@@ -97,6 +97,7 @@ func (c *Client) Init() error {
 
 	receive, err = c.sendAndReceive(msg)
 	rdb, err := ReadRDB(c.reader)
+
 	fmt.Println(string(rdb))
 	if err != nil {
 		fmt.Println("handshake failed on PSYNC")
