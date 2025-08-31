@@ -53,6 +53,7 @@ func (c *Client) Init() error {
 		}
 		return fmt.Errorf("ping failed")
 	}
+	fmt.Println("receive " + string(receive.Raw))
 
 	// 2) REPLCONF listening-port
 	msg = protocol.AppendArray([]byte{}, 3)
@@ -69,6 +70,7 @@ func (c *Client) Init() error {
 		}
 		return fmt.Errorf("replconf listening-port failed")
 	}
+	fmt.Println("receive " + string(receive.Raw))
 
 	// 3) REPLCONF capa psync2
 	msg = protocol.AppendArray([]byte{}, 3)
@@ -85,6 +87,7 @@ func (c *Client) Init() error {
 		}
 		return fmt.Errorf("replconf capa failed")
 	}
+	fmt.Println("receive " + string(receive.Raw))
 
 	// 4) PSYNC ? -1
 	msg = protocol.AppendArray([]byte{}, 3)
@@ -92,9 +95,7 @@ func (c *Client) Init() error {
 	msg = protocol.AppendBulkString(msg, []byte("?"))
 	msg = protocol.AppendBulkString(msg, []byte("-1"))
 
-	// 여기서는 master가 +FULLRESYNC ... (SimpleString) 과 이어서 RDB Bulk를 보냄.
-	// sendAndReceive는 이를 올바르게 읽고 에러 없이 반환해야 함.
-	c.conn.Write(msg)
+	receive, err = c.sendAndReceive(msg)
 	rdb, err := ReadRDB(c.reader)
 	fmt.Println(string(rdb))
 	if err != nil {
