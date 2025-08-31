@@ -96,14 +96,15 @@ func (c *Client) Init() error {
 	msg = protocol.AppendBulkString(msg, []byte("-1"))
 
 	receive, err = c.sendAndReceive(msg)
-	rdb, err := ReadRDB(c.reader)
+	go func() {
+		rdb, err := ReadRDB(c.reader)
 
-	fmt.Println(string(rdb))
-	if err != nil {
-		fmt.Println("handshake failed on PSYNC")
-		fmt.Println(err.Error())
-		return err
-	}
+		fmt.Println(string(rdb))
+		if err != nil {
+			fmt.Println("handshake failed on PSYNC")
+			fmt.Println(err.Error())
+		}
+	}()
 	return nil
 }
 
