@@ -249,7 +249,7 @@ func (s *Server) SlaveStart() {
 	}
 	s.info.InitOffset()
 
-	s.wg.Add(2)
+	s.wg.Add(1)
 	go s.handleReplicaConnection(s.client.GetConn())
 	go s.eventLoop()
 
@@ -260,6 +260,7 @@ func (s *Server) SlaveStart() {
 			return
 		default:
 			conn, err := s.listener.Accept()
+			fmt.Println("new connection" + conn.RemoteAddr().String())
 			if err != nil {
 				select {
 				case <-s.shutdownCh:
