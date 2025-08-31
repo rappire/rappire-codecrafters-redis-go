@@ -243,6 +243,7 @@ func (s *Server) SlaveStart() {
 	// 이벤트 루프를 별도 고루틴에서 시작
 
 	err := s.client.Init()
+	fmt.Println(err)
 	if err != nil {
 		return
 	}
