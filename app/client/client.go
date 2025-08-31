@@ -150,7 +150,6 @@ func ReadRDB(reader *bufio.Reader) ([]byte, error) {
 		return nil, err
 	}
 
-	// 4. 끝에 CRLF 체크
 	if buf[length] != '\r' || buf[length+1] != '\n' {
 		return nil, fmt.Errorf("invalid RDB format, missing CRLF")
 	}
